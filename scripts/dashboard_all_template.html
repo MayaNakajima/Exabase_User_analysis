@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>エクサベースAI 利用実態ダッシュボード（全期間・月次）</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root{--bg:#0f1729;--card:#1a2438;--card2:#222f4a;--tx:#e8edf7;--mut:#9fb0cc;--ac:#4f9cf9;
+--q1:#7ac47a;--q2:#f2c14e;--q3:#6fb7e8;--q4:#ef8a67;--eco:#7ac47a;--std:#f2c14e;--pre:#ef8a67;--bd:#2c3a58;}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI','Hiragino Kaku Gothic ProN','Meiryo',sans-serif;background:var(--bg);color:var(--tx);line-height:1.6;padding:24px;max-width:1320px;margin:0 auto}
+h1{font-size:22px;font-weight:700;margin-bottom:4px}
+.sub{color:var(--mut);font-size:13px;margin-bottom:22px}
+h2{font-size:16px;font-weight:700;margin:30px 0 14px;padding-left:10px;border-left:4px solid var(--ac)}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px}
+.kpi{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:16px}
+.kpi .v{font-size:24px;font-weight:700}
+.kpi .l{color:var(--mut);font-size:12px;margin-top:4px}
+.kpi .s{font-size:12px;margin-top:6px;color:var(--ac)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.grid2b{display:grid;grid-template-columns:3fr 2fr;gap:16px}
+@media(max-width:880px){.grid2,.grid2b{grid-template-columns:1fr}}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:18px}
+.card h3{font-size:14px;margin-bottom:12px;font-weight:600}
+.chartbox{position:relative;height:300px}
+.chartbox.tall{height:340px}
+.qcards{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-top:6px}
+.qc{border-radius:12px;padding:14px;border:1px solid var(--bd)}
+.qc .qt{font-weight:700;font-size:13px;margin-bottom:6px}
+.qc .qn{font-size:22px;font-weight:700}
+.qc .qd{font-size:12px;color:var(--mut)}
+.badge{display:inline-block;width:11px;height:11px;border-radius:3px;vertical-align:middle;margin-right:5px}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th,td{padding:6px 7px;text-align:center;border-bottom:1px solid var(--bd)}
+th{color:var(--mut);font-weight:600;cursor:pointer;user-select:none;white-space:nowrap;position:sticky;top:0;background:var(--card)}
+th:hover{color:var(--ac)}
+th.sorted{color:var(--ac)}
+td.l,th.l{text-align:left}
+.tblwrap{max-height:460px;overflow:auto;border-radius:8px}
+.filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;align-items:center}
+.fb{background:var(--card2);border:1px solid var(--bd);color:var(--tx);padding:5px 12px;border-radius:20px;font-size:12px;cursor:pointer}
+.fb.on{background:var(--ac);border-color:var(--ac);color:#08152b;font-weight:700}
+.fb.preset{border-style:dashed}
+.fb.preset.on{background:#7ac47a;border-color:#7ac47a}
+.flabel{font-size:11px;color:var(--mut);margin-right:2px}
+.qtag{padding:2px 7px;border-radius:10px;font-size:11px;font-weight:700;color:#08152b}
+.gtag{padding:2px 7px;border-radius:8px;font-size:11px;color:#08152b}
+.ins{background:var(--card);border:1px solid var(--bd);border-left:4px solid var(--ac);border-radius:10px;padding:13px 17px;margin-bottom:10px;font-size:13.5px}
+.ins b{color:var(--ac)}
+.foot{color:var(--mut);font-size:11px;margin-top:24px;border-top:1px solid var(--bd);padding-top:14px}
+.note{font-size:11.5px;color:var(--mut);margin-top:8px}
+.dsec.hidden{display:none}
+.btn{background:var(--card2);border:1px solid var(--bd);color:var(--tx);padding:5px 12px;border-radius:8px;font-size:12px;cursor:pointer}
+.btn:hover{border-color:var(--ac);color:var(--ac)}
+.ctrlbar{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:12px 16px;margin:16px 0}
+.ctrlbar .t{font-size:12px;color:var(--mut);margin-bottom:8px}
+</style>
+</head>
+<body>
+<h1>エクサベースAI 利用実態ダッシュボード</h1>
+<div class="sub" id="sub"></div>
+
+<div class="kpis" id="kpis"></div>
+
+<div class="ctrlbar"><div class="t">表示するセクションの切替（チェックを外すと非表示）</div><div id="sectoggles" class="filters"></div></div>
+
+<section class="dsec" data-sec="adopt">
+<h2>① 導入の推移（社内活動の効果測定）</h2>
+<div class="grid2">
+  <div class="card"><h3>アクティブユーザー・累計ユーザー・新規ユーザー</h3><div class="chartbox tall"><canvas id="adoption"></canvas></div></div>
+  <div class="card"><h3>月次 会話数・メッセージ数</h3><div class="chartbox tall"><canvas id="volume"></canvas></div></div>
+</div>
+<div class="grid2" style="margin-top:16px">
+  <div class="card"><h3>モデル階層の推移（発話ベース％｜従量課金の割合）</h3><div class="chartbox"><canvas id="tiertrend"></canvas></div></div>
+  <div class="card"><h3>高度ツール活用率・過剰スペック候補の推移</h3><div class="chartbox"><canvas id="advtrend"></canvas></div></div>
+</div>
+</section>
+
+<section class="dsec" data-sec="quad">
+<h2>② 管理グループ × 利用実態（4象限）</h2>
+<div class="note">利用頻度は「稼働月あたり発話数」で正規化（入退社・利用期間の差を排除）。バブル=ユーザー、色=管理グループ。</div>
+<div class="grid2b">
+  <div class="card"><h3>4象限 分布（横=月あたり発話 / 縦=リテラシー）</h3><div class="chartbox tall"><canvas id="scatter"></canvas></div>
+  <div class="note">点線=中央値。◆=Claude併用者。</div></div>
+  <div class="card"><h3>グループ別 4象限構成</h3><div class="chartbox tall"><canvas id="groupquad"></canvas></div>
+  <div class="note">Q1比率：コア＞ライト＞ユーザー（管理グループと実態は概ね整合）。</div></div>
+</div>
+<div class="qcards" id="qcards"></div>
+</section>
+
+<section class="dsec" data-sec="groupm">
+<h2>③ グループ別 月次アクティブ推移</h2>
+<div class="card"><h3>グループ別 月次アクティブユーザー数</h3><div class="chartbox tall"><canvas id="groupmonthly"></canvas></div></div>
+</section>
+
+<section class="dsec" data-sec="usage">
+<h2>④ 用途・チャットパートナー・ツール</h2>
+<div class="grid2">
+  <div class="card"><h3>チャット内容分類（全期間・会話数）</h3><div class="chartbox tall"><canvas id="catbar"></canvas></div>
+  <div class="filters" style="margin-top:10px"><span class="flabel">並び:</span><div class="fb cb on" data-o="count">件数順</div><div class="fb cb" data-o="name">コード順</div></div></div>
+  <div class="card"><h3>チャットパートナー別 メッセージ数（色=階層）</h3><div class="chartbox tall"><canvas id="partner"></canvas></div>
+  <div class="filters" style="margin-top:10px"><span class="flabel">並び:</span><div class="fb pb on" data-o="count">メッセージ順</div><div class="fb pb" data-o="name">名前順</div></div></div>
+</div>
+</section>
+
+<section class="dsec" data-sec="table">
+<h2>⑤ ユーザー別 明細</h2>
+<div class="filters" id="presets"><span class="flabel">クイック並び替え:</span></div>
+<div class="filters" id="filters"></div>
+<div class="filters"><button class="btn" id="csvbtn">⬇ 表示中データをCSV出力</button><span class="flabel" id="cnt"></span></div>
+<div class="card" style="padding:8px"><div class="tblwrap"><table id="utbl"><thead></thead><tbody></tbody></table></div></div>
+</section>
+
+<section class="dsec" data-sec="reco">
+<h2>⑥ グループ別 社内サポートへの示唆</h2>
+<div id="recos"></div>
+</section>
+
+<div class="foot" id="foot"></div>
+
+<script>
+const D=DATA_PLACEHOLDER;
+const QC={Q1:'#7ac47a',Q2:'#f2c14e',Q3:'#6fb7e8',Q4:'#ef8a67'};
+const QN={Q1:'高頻度・高リテラシー',Q2:'高頻度・低リテラシー',Q3:'低頻度・高リテラシー',Q4:'低頻度・低リテラシー'};
+const GC={core:'#7ac47a',light:'#6fb7e8',user:'#ef8a67',former:'#8891a5'};
+Chart.defaults.color='#9fb0cc';Chart.defaults.font.family="'Segoe UI','Meiryo',sans-serif";Chart.defaults.borderColor='#2c3a58';
+const M=D.monthly, labels=M.map(m=>m.month);
+const t=D.totals, tt=t.eco+t.std+t.pre;
+document.getElementById('sub').textContent=`対象 ${labels[0]}〜${labels[labels.length-1]}（${t.months}ヶ月） ／ 利用ユーザー ${t.users}名（メンバー総数 ${t.members}／稼働 ${t.active_members}） ／ 会話 ${t.convs.toLocaleString()}件 ／ メッセージ ${t.msgs.toLocaleString()}件`;
+
+const kpis=[
+ {v:t.users,l:'利用ユーザー数',s:`メンバー総数 ${t.members}`},
+ {v:t.convs.toLocaleString(),l:'総会話数',s:`${t.months}ヶ月`},
+ {v:t.msgs.toLocaleString(),l:'総メッセージ数',s:''},
+ {v:Math.round(t.eco/tt*100)+'%',l:'Economy比率',s:`Std ${Math.round(t.std/tt*100)}% / Pre ${(t.pre/tt*100).toFixed(1)}%`},
+ {v:M[M.length-1].active_users,l:'直近アクティブ',s:`${labels[0]}は ${M[0].active_users}`},
+ {v:D.overspec_count.toLocaleString(),l:'過剰スペック候補',s:'Claude4名除く'},
+];
+document.getElementById('kpis').innerHTML=kpis.map(k=>`<div class="kpi"><div class="v">${k.v}</div><div class="l">${k.l}</div>${k.s?`<div class="s">${k.s}</div>`:''}</div>`).join('');
+
+// ---- セクション表示/非表示トグル ----
+const SECT=[['adopt','① 導入推移'],['quad','② 4象限'],['groupm','③ グループ別月次'],['usage','④ 用途/パートナー'],['table','⑤ ユーザー表'],['reco','⑥ 示唆']];
+document.getElementById('sectoggles').innerHTML=SECT.map(s=>`<div class="fb secfb on" data-sec="${s[0]}">${s[1]}</div>`).join('')+'<div class="fb" id="secall">全表示</div>';
+document.querySelectorAll('.secfb').forEach(b=>b.onclick=()=>{b.classList.toggle('on');
+  document.querySelector(`section[data-sec="${b.dataset.sec}"]`).classList.toggle('hidden',!b.classList.contains('on'));});
+document.getElementById('secall').onclick=()=>{document.querySelectorAll('.secfb').forEach(b=>{b.classList.add('on');document.querySelector(`section[data-sec="${b.dataset.sec}"]`).classList.remove('hidden');});};
+
+const qs=D.quads;
+document.getElementById('qcards').innerHTML=qs.map(q=>`<div class="qc" style="border-top:3px solid ${QC[q.q]}"><div class="qt"><span class="badge" style="background:${QC[q.q]}"></span>${q.q} ${q.name}</div><div class="qn">${q.users}<span style="font-size:12px;color:var(--mut)">名</span></div><div class="qd">会話 ${q.convs.toLocaleString()} ／ 平均リテラシー ${q.avg_lit} ／ 高度ツール ${q.avg_adv}%</div></div>`).join('');
+
+new Chart(adoption,{data:{labels,datasets:[
+ {type:'line',label:'累計ユーザー',data:M.map(m=>m.cum_users),borderColor:'#4f9cf9',backgroundColor:'#4f9cf933',fill:true,tension:.3,yAxisID:'y'},
+ {type:'line',label:'アクティブユーザー',data:M.map(m=>m.active_users),borderColor:'#7ac47a',tension:.3,yAxisID:'y'},
+ {type:'bar',label:'新規ユーザー',data:M.map(m=>m.new_users),backgroundColor:'#f2c14e99',yAxisID:'y'}]},
+ options:{plugins:{legend:{position:'bottom'}},scales:{y:{title:{display:true,text:'人数'}}}}});
+new Chart(volume,{data:{labels,datasets:[
+ {type:'bar',label:'会話数',data:M.map(m=>m.convs),backgroundColor:'#4f9cf9',yAxisID:'y'},
+ {type:'line',label:'メッセージ数',data:M.map(m=>m.msgs),borderColor:'#ef8a67',tension:.3,yAxisID:'y1'}]},
+ options:{plugins:{legend:{position:'bottom'}},scales:{y:{position:'left',title:{display:true,text:'会話'}},y1:{position:'right',grid:{drawOnChartArea:false},title:{display:true,text:'メッセージ'}}}}});
+new Chart(tiertrend,{data:{labels,datasets:[
+ {label:'Economy%',data:M.map(m=>{let s=m.eco+m.std+m.pre;return s?Math.round(m.eco/s*100):0}),backgroundColor:'#7ac47a',stack:'s'},
+ {label:'Standard%',data:M.map(m=>{let s=m.eco+m.std+m.pre;return s?Math.round(m.std/s*100):0}),backgroundColor:'#f2c14e',stack:'s'},
+ {label:'Premium%',data:M.map(m=>{let s=m.eco+m.std+m.pre;return s?(m.pre/s*100).toFixed(1):0}),backgroundColor:'#ef8a67',stack:'s'}]},
+ options:{plugins:{legend:{position:'bottom'}},scales:{x:{stacked:true},y:{stacked:true,max:100,title:{display:true,text:'発話％'}}}}});
+new Chart(advtrend,{data:{labels,datasets:[
+ {type:'line',label:'高度ツール活用率%',data:M.map(m=>m.adv_rate),borderColor:'#6fb7e8',tension:.3,yAxisID:'y'},
+ {type:'bar',label:'過剰スペック候補',data:M.map(m=>m.overspec),backgroundColor:'#ef8a6799',yAxisID:'y1'}]},
+ options:{plugins:{legend:{position:'bottom'}},scales:{y:{position:'left',title:{display:true,text:'活用率%'}},y1:{position:'right',grid:{drawOnChartArea:false},title:{display:true,text:'過剰候補'}}}}});
+
+new Chart(scatter,{data:{datasets:['core','light','user','former'].map(g=>({
+  label:D.grplabel[g],
+  data:D.users.filter(u=>u.group==g).map(u=>({x:u.mpm,y:u.lit,user:u.user,claude:u.claude})),
+  backgroundColor:GC[g]+'cc',borderColor:GC[g],
+  pointStyle:D.users.filter(u=>u.group==g).map(u=>u.claude?'rectRot':'circle'),
+  radius:D.users.filter(u=>u.group==g).map(u=>u.claude?7:4)}))},
+ options:{plugins:{legend:{position:'bottom'},tooltip:{callbacks:{label:c=>`${c.raw.user}${c.raw.claude?'◆Claude':''}: 月${c.raw.x}発話 / スコア${c.raw.y}`}}},
+ scales:{x:{type:'logarithmic',title:{display:true,text:'月あたり発話数 →'}},y:{min:0,max:100,title:{display:true,text:'リテラシー →'},grid:{color:c=>c.tick.value==Math.round(D.median_lit)?'#f2c14e':'#2c3a58'}}}}});
+new Chart(groupquad,{data:{labels:D.groupquad.map(g=>g.label),datasets:['Q1','Q2','Q3','Q4'].map(q=>({
+  label:q+' '+QN[q],data:D.groupquad.map(g=>g[q]),backgroundColor:QC[q]}))},
+ options:{indexAxis:'y',plugins:{legend:{position:'bottom'}},scales:{x:{stacked:true,title:{display:true,text:'人数'}},y:{stacked:true}}}});
+const MG=D.monthly_group;
+new Chart(groupmonthly,{data:{labels:MG.map(m=>m.month),datasets:[
+ {label:'コア',data:MG.map(m=>m.core_users),backgroundColor:'#7ac47a',stack:'s'},
+ {label:'ライト',data:MG.map(m=>m.light_users),backgroundColor:'#6fb7e8',stack:'s'},
+ {label:'ユーザー',data:MG.map(m=>m.user_users),backgroundColor:'#ef8a67',stack:'s'},
+ {label:'退職/不明',data:MG.map(m=>m.former_users),backgroundColor:'#8891a5',stack:'s'}].map(d=>({...d,type:'bar'}))},
+ options:{plugins:{legend:{position:'bottom'}},scales:{x:{stacked:true},y:{stacked:true,title:{display:true,text:'アクティブ人数'}}}}});
+
+// ---- 用途/パートナー棒（ソート切替） ----
+let catChart, partnerChart, catOrder='count', partnerOrder='count';
+function drawCat(){const cs=[...D.cats];cs.sort(catOrder=='count'?(a,b)=>b.convs-a.convs:(a,b)=>a.code.localeCompare(b.code));
+  if(catChart)catChart.destroy();
+  catChart=new Chart(catbar,{type:'bar',data:{labels:cs.map(c=>c.name),datasets:[{data:cs.map(c=>c.convs),backgroundColor:'#4f9cf9'}]},options:{indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{title:{display:true,text:'会話数'}}}}});}
+const tcol={Economy:'#7ac47a',Standard:'#f2c14e',Premium:'#ef8a67',Unknown:'#888'};
+function drawPartner(){const ps=[...D.partners];ps.sort(partnerOrder=='count'?(a,b)=>b.msgs-a.msgs:(a,b)=>a.model.localeCompare(b.model));
+  if(partnerChart)partnerChart.destroy();
+  partnerChart=new Chart(partner,{type:'bar',data:{labels:ps.map(p=>p.model),datasets:[{data:ps.map(p=>p.msgs),backgroundColor:ps.map(p=>tcol[p.tier]||'#888')}]},options:{indexAxis:'y',plugins:{legend:{display:false},tooltip:{callbacks:{afterLabel:c=>ps[c.dataIndex].tier+' / 会話'+ps[c.dataIndex].convs}}},scales:{x:{title:{display:true,text:'メッセージ数（緑Eco 黄Std 橙Pre）'}}}}});}
+drawCat();drawPartner();
+document.querySelectorAll('.fb.cb').forEach(b=>b.onclick=()=>{document.querySelectorAll('.fb.cb').forEach(x=>x.classList.remove('on'));b.classList.add('on');catOrder=b.dataset.o;drawCat();});
+document.querySelectorAll('.fb.pb').forEach(b=>b.onclick=()=>{document.querySelectorAll('.fb.pb').forEach(x=>x.classList.remove('on'));b.classList.add('on');partnerOrder=b.dataset.o;drawPartner();});
+
+// ---- ユーザー表：ソート(A) / プリセット(B) / 行フィルタ / CSV(D) ----
+const cols=[['user','ユーザー','l'],['group','グループ',''],['q','象限',''],['claude','Claude',''],['am','稼働月',''],['convs','会話',''],['msgs','発話',''],['mpm','月/発話',''],['lit','ﾘﾃﾗｼｰ',''],['adv','高度%',''],['sp','SP発話%',''],['over','過剰',''],['top','最多用途','l']];
+let sortK='lit',dir=-1,customCmp=null,customKey=null;
+let fG='ALL',fQ='ALL',fC='ALL',fA='ALL',fO='ALL';
+const thead=document.querySelector('#utbl thead'),tbody=document.querySelector('#utbl tbody');
+function drawHead(){thead.innerHTML='<tr>'+cols.map(c=>{const arrow=(!customCmp&&sortK==c[0])?(dir<0?' ▼':' ▲'):'';return `<th class="${c[2]}${(!customCmp&&sortK==c[0])?' sorted':''}" data-k="${c[0]}">${c[1]}${arrow}</th>`}).join('')+'</tr>';
+  thead.querySelectorAll('th').forEach(th=>th.onclick=()=>{const k=th.dataset.k;customCmp=null;customKey=null;document.querySelectorAll('.fb.preset').forEach(x=>x.classList.remove('on'));if(sortK==k)dir*=-1;else{sortK=k;dir=(k=='user'||k=='top'||k=='group')?1:-1}render()});}
+function getRows(){let rs=D.users.filter(u=>(fG=='ALL'||u.group==fG)&&(fQ=='ALL'||u.q==fQ)&&(fC=='ALL'||(fC=='Y'?u.claude:!u.claude))&&(fA=='ALL'||(fA=='Y'?u.active:!u.active))&&(fO=='ALL'||u.over>0));
+  if(customCmp)rs=rs.slice().sort(customCmp);
+  else rs=rs.slice().sort((a,b)=>{let x=a[sortK],y=b[sortK];if(typeof x=='string')return String(x).localeCompare(String(y))*dir;return (x-y)*dir});
+  return rs;}
+function render(){const rs=getRows();drawHead();
+  tbody.innerHTML=rs.map(u=>`<tr><td class="l">${u.user}${u.claude?' ◆':''}</td><td><span class="gtag" style="background:${GC[u.group]}">${(D.grplabel[u.group]||u.group).slice(0,4)}</span></td><td><span class="qtag" style="background:${QC[u.q]}">${u.q}</span></td><td>${u.claude?'●':''}</td><td>${u.am}</td><td>${u.convs}</td><td>${u.msgs}</td><td>${u.mpm}</td><td><b>${u.lit}</b></td><td>${u.adv}</td><td>${u.sp}</td><td>${u.over>0?'<b style=color:#ef8a67>'+u.over+'</b>':0}</td><td class="l" style="font-size:11px">${u.top}</td></tr>`).join('');
+  document.getElementById('cnt').textContent=rs.length+'名';}
+
+// プリセット(B)
+const presets=[
+ ['lit','リテラシー高い順',(a,b)=>b.lit-a.lit],
+ ['mpm','月あたり発話 多い順',(a,b)=>b.mpm-a.mpm],
+ ['over','過剰候補 多い順',(a,b)=>b.over-a.over||b.mpm-a.mpm],
+ ['recent','直近利用 新しい順',(a,b)=>String(b.lm).localeCompare(String(a.lm))],
+ ['churn','離脱懸念(ライト×Q4)',(a,b)=>((a.group=='light'&&a.q=='Q4')?0:1)-((b.group=='light'&&b.q=='Q4')?0:1)||a.mpm-b.mpm],
+ ['corecand','コア候補(ユーザー×Q1)',(a,b)=>((a.group=='user'&&a.q=='Q1')?0:1)-((b.group=='user'&&b.q=='Q1')?0:1)||b.lit-a.lit],
+];
+document.getElementById('presets').innerHTML+=presets.map(p=>`<div class="fb preset" data-k="${p[0]}">${p[1]}</div>`).join('');
+document.querySelectorAll('.fb.preset').forEach(b=>b.onclick=()=>{const on=b.classList.contains('on');document.querySelectorAll('.fb.preset').forEach(x=>x.classList.remove('on'));
+  if(on){customCmp=null;customKey=null;}else{b.classList.add('on');const p=presets.find(p=>p[0]==b.dataset.k);customCmp=p[2];customKey=p[0];}render();});
+
+// 行フィルタ
+const gf=[['ALL','全'],['core','コア'],['light','ライト'],['user','ユーザー'],['former','退職/不明']];
+const qf=[['ALL','全象限'],['Q1','Q1'],['Q2','Q2'],['Q3','Q3'],['Q4','Q4']];
+const cf=[['ALL','全員'],['Y','Claude併用'],['N','非併用']];
+const af=[['ALL','在籍問わず'],['Y','稼働のみ'],['N','非稼働のみ']];
+const of=[['ALL','過剰問わず'],['Y','過剰候補ありのみ']];
+document.getElementById('filters').innerHTML=
+ '<span class="flabel">グループ:</span>'+gf.map((f,i)=>`<div class="fb g ${i==0?'on':''}" data-f="${f[0]}">${f[1]}</div>`).join('')+
+ '<span class="flabel" style="margin-left:8px">象限:</span>'+qf.map((f,i)=>`<div class="fb q ${i==0?'on':''}" data-f="${f[0]}">${f[1]}</div>`).join('')+
+ '<span class="flabel" style="margin-left:8px">Claude:</span>'+cf.map((f,i)=>`<div class="fb c ${i==0?'on':''}" data-f="${f[0]}">${f[1]}</div>`).join('')+
+ '<span class="flabel" style="margin-left:8px">在籍:</span>'+af.map((f,i)=>`<div class="fb a ${i==0?'on':''}" data-f="${f[0]}">${f[1]}</div>`).join('')+
+ '<span class="flabel" style="margin-left:8px">過剰:</span>'+of.map((f,i)=>`<div class="fb o ${i==0?'on':''}" data-f="${f[0]}">${f[1]}</div>`).join('');
+function bind(cls,set){document.querySelectorAll('.fb.'+cls).forEach(b=>b.onclick=()=>{document.querySelectorAll('.fb.'+cls).forEach(x=>x.classList.remove('on'));b.classList.add('on');set(b.dataset.f);render()})}
+bind('g',v=>fG=v);bind('q',v=>fQ=v);bind('c',v=>fC=v);bind('a',v=>fA=v);bind('o',v=>fO=v);
+
+// CSV(D)
+document.getElementById('csvbtn').onclick=()=>{const rs=getRows();
+  const head=['ユーザー','グループ','象限','Claude併用','稼働','稼働月','会話','発話','月あたり発話','リテラシー','高度ツール%','SP発話%','過剰候補','最多用途'];
+  const lines=[head.join(',')];
+  rs.forEach(u=>{const row=[u.user,D.grplabel[u.group]||u.group,u.q,u.claude?'●':'',u.active?'稼働':'非稼働',u.am,u.convs,u.msgs,u.mpm,u.lit,u.adv,u.sp,u.over,u.top]
+    .map(v=>{v=String(v);return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v});lines.push(row.join(','))});
+  const blob=new Blob(['﻿'+lines.join('\r\n')],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='exabase_users.csv';a.click();};
+
+render();
+
+// 示唆
+const gqm={};D.groupquad.forEach(g=>gqm[g.group]=g);
+const cu=D.claude_users.map(u=>u.user.split('@')[0]).join(' / ');
+document.getElementById('recos').innerHTML=`
+<div class="ins"><b>コアユーザー（${gqm.core?gqm.core.total:0}名・ほぼ全員Q1）</b>：横展開の中核。ベストプラクティスの発信源／アンバサダー化。次の一手は高度機能（Deep Research・RAG・ファイル出力）の活用引き上げ。</div>
+<div class="ins" style="border-left-color:var(--q3)"><b>ライトユーザー（${gqm.light?gqm.light.total:0}名）</b>：Q1が${gqm.light?gqm.light.Q1:0}名と実態は活発。ただしQ4が${gqm.light?gqm.light.Q4:0}名（定着支援・再オンボーディングの対象）。コア昇格候補の見極めも。</div>
+<div class="ins" style="border-left-color:var(--q4)"><b>ユーザー（${gqm.user?gqm.user.total:0}名）</b>：Q4が${gqm.user?gqm.user.Q4:0}名と最も未活用。成功体験設計とオンボーディングを重点投入。一方Q1が${gqm.user?gqm.user.Q1:0}名おり、コア候補として引き上げる。</div>
+<div class="ins" style="border-left-color:var(--pre)"><b>コスト最適化</b>：リテラシーとStandard/Premium選択は無相関。単純用途（メール・校正・一般質問）はEconomy既定とし、上位モデルはファイル分析・深いリサーチ・複雑推論に限定するモデル推奨ガイドを整備。過剰スペック候補は全期間で${D.overspec_count.toLocaleString()}件。</div>
+<div class="ins" style="border-left-color:#8891a5"><b>Claude併用者（${cu}）</b>：高度用途はClaude（Claude Code含む）で対応するためExaBaseの上位モデル利用が少ない。能力評価やコスト最適化の解釈時は除外して扱う。</div>`;
+
+document.getElementById('foot').innerHTML=`リテラシー複合スコア=会話の深さ18%+プロンプト具体性18%+高度ツール活用率20%+用途多様性16%+構造化プロンプト率18%+ツール種類数10%（利用者内百分位の加重平均）。利用頻度=稼働月あたり発話数で正規化。4象限は中央値（月あたり発話 ${D.median_freq.toFixed?D.median_freq.toFixed(1):D.median_freq} ／ スコア ${D.median_lit}）で分割。内容分類は全 ${t.convs.toLocaleString()} 会話をAIが12カテゴリに分類。グループはメンバー権限（core/light/user）に基づく。`;
+</script>
+</body>
+</html>

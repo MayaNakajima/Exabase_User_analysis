@@ -1,0 +1,12 @@
+# 改行コードの正規化（Windows/Mac/Linux 混在対策）
+# リポジトリ内はすべて LF に統一する（本プロジェクトの生成ファイルは LF のため
+# CRLF への変換警告を出さない）。
+* text=auto eol=lf
+
+# バイナリ（誤変換防止・通常は .gitignore 対象だが念のため明示）
+*.xlsx binary
+*.xls  binary
+*.gz   binary
+*.png  binary
+*.jpg  binary
+*.pdf  binary

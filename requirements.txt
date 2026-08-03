@@ -1,0 +1,6 @@
+# Python 依存パッケージ
+openpyxl>=3.1
+
+# 別途必要（pip対象外）:
+#   - LibreOffice (soffice) : Excel数式の再計算・検証に使用（scripts/recalc相当）
+#   - AI/サブエージェント    : STEP3 のチャット内容分類に使用（scripts/classification_prompt.md）

@@ -1,0 +1,26 @@
+# === 生データ・中間ファイル（個人情報・チャット本文を含むため管理対象外）===
+# data/ 直下を全て除外し、README のみ追跡（親ディレクトリごと除外すると
+# 再include できないため data/* を使う）
+data/*
+!data/README.md
+
+# === 成果物（社員名・チャット抜粋を含む）===
+# output/ はGit対象外。成果物は実行用BOXで共有する（README/初回セットアップ参照）
+output/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# OS / エディタ
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# LibreOffice / Excel 一時ロック
+.~lock.*
+~$*
