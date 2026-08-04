@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>エクサベースAI 利用実態ダッシュボード（2026年7月）</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root{--bg:#0f1729;--card:#1a2438;--card2:#222f4a;--tx:#e8edf7;--mut:#9fb0cc;--ac:#4f9cf9;
+--q1:#7ac47a;--q2:#f2c14e;--q3:#6fb7e8;--q4:#ef8a67;--eco:#7ac47a;--std:#f2c14e;--pre:#ef8a67;--bd:#2c3a58;}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI','Hiragino Kaku Gothic ProN','Meiryo',sans-serif;background:var(--bg);color:var(--tx);line-height:1.6;padding:24px;max-width:1280px;margin:0 auto}
+h1{font-size:22px;font-weight:700;margin-bottom:4px}
+.sub{color:var(--mut);font-size:13px;margin-bottom:22px}
+h2{font-size:16px;font-weight:700;margin:30px 0 14px;padding-left:10px;border-left:4px solid var(--ac)}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.kpi{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:16px}
+.kpi .v{font-size:26px;font-weight:700}
+.kpi .l{color:var(--mut);font-size:12px;margin-top:4px}
+.kpi .s{font-size:12px;margin-top:6px;color:var(--ac)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.grid2b{display:grid;grid-template-columns:3fr 2fr;gap:16px}
+@media(max-width:860px){.grid2,.grid2b{grid-template-columns:1fr}}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:18px}
+.card h3{font-size:14px;margin-bottom:12px;font-weight:600}
+.qcards{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px;margin-top:14px}
+.qc{border-radius:12px;padding:16px;border:1px solid var(--bd)}
+.qc .qt{font-weight:700;font-size:14px;margin-bottom:8px}
+.qc .qn{font-size:24px;font-weight:700}
+.qc .qd{font-size:12px;color:var(--mut);margin-top:2px}
+.qc .qa{font-size:12px;margin-top:10px;padding-top:10px;border-top:1px solid var(--bd);color:var(--tx)}
+.badge{display:inline-block;width:11px;height:11px;border-radius:3px;vertical-align:middle;margin-right:5px}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th,td{padding:7px 8px;text-align:center;border-bottom:1px solid var(--bd)}
+th{color:var(--mut);font-weight:600;cursor:pointer;user-select:none;white-space:nowrap;position:sticky;top:0;background:var(--card)}
+th:hover{color:var(--ac)}
+td.l,th.l{text-align:left}
+.tblwrap{max-height:460px;overflow:auto;border-radius:8px}
+.filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.fb{background:var(--card2);border:1px solid var(--bd);color:var(--tx);padding:6px 14px;border-radius:20px;font-size:12.5px;cursor:pointer}
+.fb.on{background:var(--ac);border-color:var(--ac);color:#08152b;font-weight:700}
+.qtag{padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700;color:#08152b}
+.chartbox{position:relative;height:300px}
+.chartbox.tall{height:360px}
+.ins{background:var(--card);border:1px solid var(--bd);border-left:4px solid var(--ac);border-radius:10px;padding:14px 18px;margin-bottom:10px;font-size:13.5px}
+.ins b{color:var(--ac)}
+.foot{color:var(--mut);font-size:11px;margin-top:24px;border-top:1px solid var(--bd);padding-top:14px}
+.pill{font-size:11px;padding:1px 7px;border-radius:8px;background:var(--card2);color:var(--mut)}
+</style>
+</head>
+<body>
+<h1>エクサベースAI 利用実態ダッシュボード</h1>
+<div class="sub">対象期間 2026-07-01〜2026-07-31 ／ 169ユーザー・2,587会話・19,548メッセージ ｜ 内容分類はAIによる全会話分析</div>
+
+<div class="kpis" id="kpis"></div>
+
+<h2>① 利用頻度 × リテラシー 4象限</h2>
+<div class="grid2b">
+  <div class="card"><h3>ユーザー分布（横=利用頻度／縦=リテラシースコア）</h3><div class="chartbox tall"><canvas id="scatter"></canvas></div>
+  <div style="font-size:11.5px;color:var(--mut);margin-top:8px">点線は中央値（頻度26／スコア62.5）。バブルサイズ=会話数。</div></div>
+  <div class="card"><h3>相関サマリー</h3>
+    <div class="ins" style="margin-bottom:8px"><b>頻度 ⇔ リテラシー</b> ： r=0.60（正の相関）<br><span style="color:var(--mut);font-size:12px">使うほど習熟する／習熟者ほど使う</span></div>
+    <div class="ins" style="margin-bottom:8px;border-left-color:var(--q4)"><b>リテラシー ⇔ Std/Prem選択</b> ： r=0.08（ほぼ無相関）<br><span style="color:var(--mut);font-size:12px">上位モデルは"必要性"で選ばれていない</span></div>
+    <div class="ins" style="margin-bottom:0;border-left-color:var(--q2)"><b>リテラシー ⇔ 高度ツール活用</b> ： r=0.26（弱い相関）<br><span style="color:var(--mut);font-size:12px">上位層でも高度機能の活用は限定的</span></div>
+  </div>
+</div>
+<div class="qcards" id="qcards"></div>
+
+<h2>② チャット内容の分類（AIによる全会話分析）</h2>
+<div class="grid2">
+  <div class="card"><h3>業務カテゴリ別 会話数</h3><div class="chartbox tall"><canvas id="catbar"></canvas></div></div>
+  <div class="card"><h3>カテゴリ別 モデル階層内訳（Std/Prem比率が高い＝要適正化）</h3><div class="chartbox tall"><canvas id="cattier"></canvas></div></div>
+</div>
+
+<h2>③ チャットパートナー・ツール利用</h2>
+<div class="grid2">
+  <div class="card"><h3>チャットパートナー別 総メッセージ数（色=階層）</h3><div class="chartbox tall"><canvas id="partner"></canvas></div></div>
+  <div class="card"><h3>利用ツール別 会話数</h3><div class="chartbox tall"><canvas id="tools"></canvas></div></div>
+</div>
+
+<h2>④ 従量課金の適正性：リテラシー × Std/Prem利用率</h2>
+<div class="card"><h3>横=リテラシースコア／縦=Std/Prem発話比率（相関なし＝スペック選択が習熟度と無関係）</h3>
+<div class="chartbox"><canvas id="spscatter"></canvas></div>
+<div style="font-size:12px;color:var(--mut);margin-top:8px">過剰スペック候補：従量課金404会話のうち<b style="color:var(--pre)">81件（20%）</b>が、単純用途×浅い往復×高度機能なしでEconomy代替可能。</div>
+</div>
+
+<h2>⑤ ユーザー別 明細</h2>
+<div class="filters" id="filters"></div>
+<div class="card" style="padding:8px">
+<div class="tblwrap"><table id="utbl"><thead></thead><tbody></tbody></table></div>
+</div>
+
+<h2>⑥ 社内サポートへの示唆</h2>
+<div class="ins"><b>Q1 高頻度・高リテラシー（69名／会話の78%）</b>：横展開の担い手。社内アンバサダー化とベストプラクティス共有。次の一手は<b>高度機能（Deep Research／RAG／ファイル出力）への引き上げ</b>（Q1でも活用率5%）。</div>
+<div class="ins" style="border-left-color:var(--q2)"><b>Q2 高頻度・低リテラシー（17名）</b>：量は使うが質に課題。<b>プロンプト研修とテンプレート配布</b>で費用対効果を改善。トレーニング効果が最も高い層。</div>
+<div class="ins" style="border-left-color:var(--q3)"><b>Q3 低頻度・高リテラシー（16名）</b>：スキルはあるが機会不足。<b>業務プロセスへの組み込みと活用シーン提示</b>で頻度を引き上げ。</div>
+<div class="ins" style="border-left-color:var(--q4)"><b>Q4 低頻度・低リテラシー（67名）</b>：未活用層。<b>オンボーディングと成功体験設計</b>が必要。<b>シャドウAI利用のリスク調査</b>対象。</div>
+<div class="ins" style="border-left-color:var(--pre)"><b>コスト適正化</b>：メール・校正・一般質問などの定型用途はEconomyを既定に。Standard/Premiumは<b>ファイル分析・深いリサーチ・複雑推論に限定</b>する運用ルールとモデル推奨ガイドを整備（過剰スペック20%を削減可能）。</div>
+
+<div class="foot">
+リテラシー複合スコア = 会話の深さ18% + プロンプト具体性18% + 高度ツール活用率20% + 用途多様性16% + 構造化プロンプト率18% + ツール種類数10%（各指標を169名内の百分位に変換し加重平均）。<br>
+利用頻度 = 月内ユーザー発話数。4象限は各中央値（頻度26／スコア62.5）で分割。内容分類は全2,587会話の初回発話をAIが読み12カテゴリに分類。
+</div>
+
+<script>
+const D=DATA_PLACEHOLDER;
+const QC={Q1:'#7ac47a',Q2:'#f2c14e',Q3:'#6fb7e8',Q4:'#ef8a67'};
+const QNAME={Q1:'高頻度・高リテラシー',Q2:'高頻度・低リテラシー',Q3:'低頻度・高リテラシー',Q4:'低頻度・低リテラシー'};
+Chart.defaults.color='#9fb0cc';Chart.defaults.font.family="'Segoe UI','Meiryo',sans-serif";
+Chart.defaults.borderColor='#2c3a58';
+
+// KPIs
+const t=D.agg.totals;
+const kpis=[
+ {v:t.users,l:'総ユーザー数',s:''},
+ {v:t.convs.toLocaleString(),l:'総会話数',s:''},
+ {v:(t.umsgs+t.amsgs).toLocaleString(),l:'総メッセージ数',s:''},
+ {v:'82%',l:'Economy比率',s:'Std 17% / Prem 0.04%'},
+ {v:'404',l:'従量課金 会話数',s:'うち過剰候補 81件(20%)'},
+ {v:'21%',l:'ツール利用会話率',s:'高度機能に伸びしろ'},
+];
+document.getElementById('kpis').innerHTML=kpis.map(k=>`<div class="kpi"><div class="v">${k.v}</div><div class="l">${k.l}</div>${k.s?`<div class="s">${k.s}</div>`:''}</div>`).join('');
+
+// quadrant cards
+const qs=D.agg.quads;
+const qact={'Q1_高頻度・高リテラシー':'横展開の担い手。高度機能へ引き上げ','Q2_高頻度・低リテラシー':'プロンプト研修・テンプレで質を改善','Q3_低頻度・高リテラシー':'業務組み込みで頻度UP','Q4_低頻度・低リテラシー':'オンボーディング／シャドウAI調査'};
+document.getElementById('qcards').innerHTML=qs.map(q=>{const k=q.quadrant.slice(0,2);return `<div class="qc" style="border-top:3px solid ${QC[k]}"><div class="qt"><span class="badge" style="background:${QC[k]}"></span>${k} ${QNAME[k]}</div><div class="qn">${q.users}<span style="font-size:13px;color:var(--mut)">名</span></div><div class="qd">会話 ${q.convs.toLocaleString()}件 ／ 平均リテラシー ${q.avg_lit} ／ 平均往復 ${q.avg_turns}</div><div class="qa">${qact[q.quadrant]}</div></div>`}).join('');
+
+// scatter users
+new Chart(document.getElementById('scatter'),{type:'bubble',data:{datasets:['Q1','Q2','Q3','Q4'].map(q=>({label:q,data:D.users.filter(u=>u.q==q).map(u=>({x:u.freq,y:u.lit,r:Math.max(3,Math.sqrt(u.convs)*1.6),user:u.user})),backgroundColor:QC[q]+'cc',borderColor:QC[q]}))},
+ options:{plugins:{legend:{position:'bottom'},tooltip:{callbacks:{label:c=>`${c.raw.user}: 頻度${c.raw.x} / スコア${c.raw.y}`}}},
+ scales:{x:{title:{display:true,text:'利用頻度（発話数）→'},type:'logarithmic'},y:{title:{display:true,text:'リテラシースコア →'},min:0,max:100,
+ grid:{color:c=>c.tick.value==62.5?'#f2c14e':'#2c3a58'}}}}});
+
+// category bar
+const cats=D.agg.cat||D.agg.cats;
+new Chart(document.getElementById('catbar'),{type:'bar',data:{labels:cats.map(c=>c.name),datasets:[{data:cats.map(c=>c.convs),backgroundColor:'#4f9cf9'}]},
+ options:{indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{title:{display:true,text:'会話数'}}}}});
+
+// category tier stacked (share)
+new Chart(document.getElementById('cattier'),{type:'bar',data:{labels:cats.map(c=>c.name),datasets:[
+ {label:'Economy',data:cats.map(c=>c.economy),backgroundColor:'#7ac47a'},
+ {label:'Standard',data:cats.map(c=>c.standard),backgroundColor:'#f2c14e'},
+ {label:'Premium',data:cats.map(c=>c.premium),backgroundColor:'#ef8a67'}]},
+ options:{indexAxis:'y',plugins:{legend:{position:'bottom'}},scales:{x:{stacked:true},y:{stacked:true}}}});
+
+// partner bar
+const P=D.agg.partners.filter(p=>p.partner!=='None');
+const tcol={Economy:'#7ac47a',Standard:'#f2c14e',Premium:'#ef8a67',Unknown:'#888'};
+new Chart(document.getElementById('partner'),{type:'bar',data:{labels:P.map(p=>p.model),datasets:[{data:P.map(p=>p.total_msgs),backgroundColor:P.map(p=>tcol[p.tier]||'#888')}]},
+ options:{indexAxis:'y',plugins:{legend:{display:false},tooltip:{callbacks:{afterLabel:c=>P[c.dataIndex].tier+' / 会話'+P[c.dataIndex].convs}}},scales:{x:{title:{display:true,text:'総メッセージ数（緑=Economy 黄=Standard 橙=Premium）'}}}}});
+
+// tools bar
+const T=D.agg.tools.slice(0,14);
+new Chart(document.getElementById('tools'),{type:'bar',data:{labels:T.map(t=>t.tool),datasets:[{data:T.map(t=>t.convs),backgroundColor:'#6fb7e8'}]},
+ options:{indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{title:{display:true,text:'利用会話数'}}}}});
+
+// sp scatter
+new Chart(document.getElementById('spscatter'),{type:'scatter',data:{datasets:['Q1','Q2','Q3','Q4'].map(q=>({label:q,data:D.users.filter(u=>u.q==q).map(u=>({x:u.lit,y:u.spshare,user:u.user})),backgroundColor:QC[q]+'cc'}))},
+ options:{plugins:{legend:{position:'bottom'},tooltip:{callbacks:{label:c=>`${c.raw.user}: スコア${c.raw.x} / Std+Prem${c.raw.y}%`}}},scales:{x:{title:{display:true,text:'リテラシースコア →'},min:0,max:100},y:{title:{display:true,text:'Std/Prem発話比率 %'},min:0,max:100}}}});
+
+// table
+const cols=[['user','ユーザー','l'],['q','象限',''],['freq','頻度',''],['convs','会話',''],['lit','ﾘﾃﾗｼｰ',''],['turns','平均往復',''],['adv','高度ﾂｰﾙ%',''],['struct','構造化%',''],['catdiv','用途数',''],['ntools','ﾂｰﾙ種',''],['stdprem','Std/Prem',''],['over','過剰候補',''],['top','最多用途','l']];
+let sortK='lit',sortDir=-1,filt='ALL';
+const thead=document.querySelector('#utbl thead'),tbody=document.querySelector('#utbl tbody');
+thead.innerHTML='<tr>'+cols.map(c=>`<th class="${c[2]}" data-k="${c[0]}">${c[1]}</th>`).join('')+'</tr>';
+thead.querySelectorAll('th').forEach(th=>th.onclick=()=>{const k=th.dataset.k;if(sortK==k)sortDir*=-1;else{sortK=k;sortDir=(k=='user'||k=='top')?1:-1;}render();});
+function render(){let rows=D.users.filter(u=>filt=='ALL'||u.q==filt);
+ rows.sort((a,b)=>{let x=a[sortK],y=b[sortK];if(typeof x=='string')return x.localeCompare(y)*sortDir;return (x-y)*sortDir;});
+ tbody.innerHTML=rows.map(u=>`<tr><td class="l">${u.user}</td><td><span class="qtag" style="background:${QC[u.q]}">${u.q}</span></td><td>${u.freq}</td><td>${u.convs}</td><td><b>${u.lit}</b></td><td>${u.turns}</td><td>${u.adv}</td><td>${u.struct}</td><td>${u.catdiv}</td><td>${u.ntools}</td><td>${u.stdprem}</td><td>${u.over>0?'<b style=color:#ef8a67>'+u.over+'</b>':0}</td><td class="l" style="font-size:11.5px">${u.top}</td></tr>`).join('');}
+const fdefs=[['ALL','全169名'],['Q1','Q1 '+QNAME.Q1],['Q2','Q2 '+QNAME.Q2],['Q3','Q3 '+QNAME.Q3],['Q4','Q4 '+QNAME.Q4]];
+document.getElementById('filters').innerHTML=fdefs.map(f=>`<div class="fb ${f[0]=='ALL'?'on':''}" data-f="${f[0]}">${f[1]}</div>`).join('');
+document.querySelectorAll('.fb').forEach(b=>b.onclick=()=>{document.querySelectorAll('.fb').forEach(x=>x.classList.remove('on'));b.classList.add('on');filt=b.dataset.f;render();});
+render();
+</script>
+</body>
+</html>
