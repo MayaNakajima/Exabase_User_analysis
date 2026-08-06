@@ -24,6 +24,7 @@ RAW_GLOB = "gai-export-*.xlsx"
 RAW_EXPORTS = DATA / "raw_exports"    # 月次xlsxの正本アーカイブ（gitignore）
 ARCHIVE = DATA / "archive"            # 月別gzip正規化マスタ（gitignore）
 MEMBERS_GLOB = "gai-members-export-*.xlsx"  # メンバー一覧（raw_exports配下）
+SHAIN_GLOB = "社員一覧*.csv"  # 人事の社員一覧CSV（氏名突合用, Shift-JIS）。18_employee_master.py が使用
 
 # 管理グループ（メンバー権限のサブグループトークンから判定）
 GROUP_LABEL = {"core": "コアユーザー", "light": "ライトユーザー",

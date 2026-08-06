@@ -55,6 +55,38 @@ td.l,th.l{text-align:left}
 .btn:hover{border-color:var(--ac);color:var(--ac)}
 .ctrlbar{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:12px 16px;margin:16px 0}
 .ctrlbar .t{font-size:12px;color:var(--mut);margin-bottom:8px}
+/* グラフ下の「見方・示唆」キャプション */
+.cins{font-size:12px;color:var(--mut);margin-top:10px;line-height:1.7;border-top:1px dashed var(--bd);padding-top:9px}
+.cins .see{color:#8fd0ff}.cins .imp{color:#ffd479}
+.cins b{color:var(--tx)}
+/* リテラシー向上ガイド */
+.litguide{background:linear-gradient(135deg,#1a2438,#20304e);border:1px solid var(--bd);border-left:4px solid #6fb7e8;border-radius:12px;padding:16px 18px;margin:14px 0}
+.litguide h3{font-size:15px;margin-bottom:6px;color:#8fd0ff}
+.litguide p{font-size:13px;color:var(--tx);margin-bottom:10px}
+.metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:10px;margin-top:10px}
+.metric{background:var(--card2);border:1px solid var(--bd);border-radius:10px;padding:11px 13px}
+.metric .mh{font-weight:700;font-size:12.5px;color:var(--tx)}
+.metric .mw{float:right;font-size:11px;color:#8fd0ff;font-weight:700}
+.metric .md{font-size:11.5px;color:var(--mut);margin-top:5px;line-height:1.55}
+.watch{display:inline-block;background:#6fb7e822;border:1px solid #6fb7e855;color:#8fd0ff;border-radius:6px;padding:1px 7px;font-size:11px;margin:3px 4px 0 0}
+/* 検索ボックス */
+.searchbar{display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap}
+.searchbar input{background:var(--card2);border:1px solid var(--bd);color:var(--tx);padding:7px 12px;border-radius:8px;font-size:13px;min-width:280px;flex:1;max-width:420px}
+.searchbar input:focus{outline:none;border-color:var(--ac)}
+.searchbar .clr{cursor:pointer;color:var(--mut);font-size:12px;border:1px solid var(--bd);border-radius:8px;padding:6px 10px}
+.searchbar .clr:hover{color:var(--ac);border-color:var(--ac)}
+.uname{font-weight:600;white-space:nowrap}
+.usub{font-size:10.5px;color:var(--mut)}
+td.l .uname,td.l .usub{display:inline-block;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:bottom}
+th[data-k="name"],td.namecell{min-width:150px}
+th[data-k="dept"],td.deptcell{max-width:190px}
+td.litcell{cursor:help;position:relative}
+.litbd{position:absolute;z-index:20;left:50%;transform:translateX(-50%);bottom:130%;background:#0b1428;border:1px solid var(--ac);border-radius:8px;padding:9px 11px;width:230px;text-align:left;font-size:11px;color:var(--tx);box-shadow:0 6px 20px #0008;display:none}
+td.litcell:hover .litbd{display:block}
+.litbd .lr{display:flex;justify-content:space-between;padding:2px 0;border-bottom:1px solid var(--bd)}
+.litbd .lr:last-child{border-bottom:none}
+.litbd .lk{color:var(--mut)}
+mark{background:#f2c14e;color:#08152b;border-radius:2px;padding:0 1px}
 </style>
 </head>
 <body>
@@ -63,17 +95,23 @@ td.l,th.l{text-align:left}
 
 <div class="kpis" id="kpis"></div>
 
+<div class="litguide" id="litguide"></div>
+
 <div class="ctrlbar"><div class="t">表示するセクションの切替（チェックを外すと非表示）</div><div id="sectoggles" class="filters"></div></div>
 
 <section class="dsec" data-sec="adopt">
 <h2>① 導入の推移（社内活動の効果測定）</h2>
 <div class="grid2">
-  <div class="card"><h3>アクティブユーザー・累計ユーザー・新規ユーザー</h3><div class="chartbox tall"><canvas id="adoption"></canvas></div></div>
-  <div class="card"><h3>月次 会話数・メッセージ数</h3><div class="chartbox tall"><canvas id="volume"></canvas></div></div>
+  <div class="card"><h3>アクティブユーザー・累計ユーザー・新規ユーザー</h3><div class="chartbox tall"><canvas id="adoption"></canvas></div>
+  <div class="cins" id="cins_adoption"></div></div>
+  <div class="card"><h3>月次 会話数・メッセージ数</h3><div class="chartbox tall"><canvas id="volume"></canvas></div>
+  <div class="cins" id="cins_volume"></div></div>
 </div>
 <div class="grid2" style="margin-top:16px">
-  <div class="card"><h3>モデル階層の推移（発話ベース％｜従量課金の割合）</h3><div class="chartbox"><canvas id="tiertrend"></canvas></div></div>
-  <div class="card"><h3>高度ツール活用率・過剰スペック候補の推移</h3><div class="chartbox"><canvas id="advtrend"></canvas></div></div>
+  <div class="card"><h3>モデル階層の推移（発話ベース％｜従量課金の割合）</h3><div class="chartbox"><canvas id="tiertrend"></canvas></div>
+  <div class="cins" id="cins_tier"></div></div>
+  <div class="card"><h3>高度ツール活用率・過剰スペック候補の推移</h3><div class="chartbox"><canvas id="advtrend"></canvas></div>
+  <div class="cins" id="cins_adv"></div></div>
 </div>
 </section>
 
@@ -82,34 +120,43 @@ td.l,th.l{text-align:left}
 <div class="note">利用頻度は「稼働月あたり発話数」で正規化（入退社・利用期間の差を排除）。バブル=ユーザー、色=管理グループ。</div>
 <div class="grid2b">
   <div class="card"><h3>4象限 分布（横=月あたり発話 / 縦=リテラシー）</h3><div class="chartbox tall"><canvas id="scatter"></canvas></div>
-  <div class="note">点線=中央値。◆=Claude併用者。</div></div>
+  <div class="note">点線=中央値。◆=Claude併用者。バブルにカーソルを合わせると氏名が出ます。</div>
+  <div class="cins" id="cins_scatter"></div></div>
   <div class="card"><h3>グループ別 4象限構成</h3><div class="chartbox tall"><canvas id="groupquad"></canvas></div>
-  <div class="note">Q1比率：コア＞ライト＞ユーザー（管理グループと実態は概ね整合）。</div></div>
+  <div class="cins" id="cins_groupquad"></div></div>
 </div>
 <div class="qcards" id="qcards"></div>
 </section>
 
 <section class="dsec" data-sec="groupm">
 <h2>③ グループ別 月次アクティブ推移</h2>
-<div class="card"><h3>グループ別 月次アクティブユーザー数</h3><div class="chartbox tall"><canvas id="groupmonthly"></canvas></div></div>
+<div class="card"><h3>グループ別 月次アクティブユーザー数</h3><div class="chartbox tall"><canvas id="groupmonthly"></canvas></div>
+<div class="cins" id="cins_groupm"></div></div>
 </section>
 
 <section class="dsec" data-sec="usage">
 <h2>④ 用途・チャットパートナー・ツール</h2>
 <div class="grid2">
   <div class="card"><h3>チャット内容分類（全期間・会話数）</h3><div class="chartbox tall"><canvas id="catbar"></canvas></div>
-  <div class="filters" style="margin-top:10px"><span class="flabel">並び:</span><div class="fb cb on" data-o="count">件数順</div><div class="fb cb" data-o="name">コード順</div></div></div>
+  <div class="filters" style="margin-top:10px"><span class="flabel">並び:</span><div class="fb cb on" data-o="count">件数順</div><div class="fb cb" data-o="name">コード順</div></div>
+  <div class="cins" id="cins_cat"></div></div>
   <div class="card"><h3>チャットパートナー別 メッセージ数（色=階層）</h3><div class="chartbox tall"><canvas id="partner"></canvas></div>
-  <div class="filters" style="margin-top:10px"><span class="flabel">並び:</span><div class="fb pb on" data-o="count">メッセージ順</div><div class="fb pb" data-o="name">名前順</div></div></div>
+  <div class="filters" style="margin-top:10px"><span class="flabel">並び:</span><div class="fb pb on" data-o="count">メッセージ順</div><div class="fb pb" data-o="name">名前順</div></div>
+  <div class="cins" id="cins_partner"></div></div>
 </div>
 </section>
 
 <section class="dsec" data-sec="table">
 <h2>⑤ ユーザー別 明細</h2>
+<div class="searchbar">
+  <input id="usearch" type="search" placeholder="🔍 氏名・カナ・メール・部署で検索（例: 中島 / ナカジマ / nakajima / マーケティング）" autocomplete="off">
+  <span class="clr" id="usearchclr">クリア</span>
+</div>
 <div class="filters" id="presets"><span class="flabel">クイック並び替え:</span></div>
 <div class="filters" id="filters"></div>
 <div class="filters"><button class="btn" id="csvbtn">⬇ 表示中データをCSV出力</button><span class="flabel" id="cnt"></span></div>
 <div class="card" style="padding:8px"><div class="tblwrap"><table id="utbl"><thead></thead><tbody></tbody></table></div></div>
+<div class="cins">💡 <span class="see">見方</span>：<b>リテラシー</b>列にカーソルを合わせると6つのサブ指標（往復・具体性・高度ツール%・用途多様性・構造化%・ツール種類）の内訳が出ます。どの指標が低いかで「次に伸ばすべき点」が分かります。<b>過剰</b>列が多い人は上位モデルを単純用途に使っている候補です。</div>
 </section>
 
 <section class="dsec" data-sec="reco">
@@ -170,11 +217,11 @@ new Chart(advtrend,{data:{labels,datasets:[
 
 new Chart(scatter,{type:'scatter',data:{datasets:['core','light','user','former'].map(g=>({
   label:D.grplabel[g],
-  data:D.users.filter(u=>u.group==g).map(u=>({x:u.mpm,y:u.lit,user:u.user,claude:u.claude})),
+  data:D.users.filter(u=>u.group==g).map(u=>({x:u.mpm,y:u.lit,user:u.user,name:u.name,claude:u.claude})),
   backgroundColor:GC[g]+'cc',borderColor:GC[g],
   pointStyle:D.users.filter(u=>u.group==g).map(u=>u.claude?'rectRot':'circle'),
   pointRadius:D.users.filter(u=>u.group==g).map(u=>u.claude?7:4)}))},
- options:{plugins:{legend:{position:'bottom'},tooltip:{callbacks:{label:c=>`${c.raw.user}${c.raw.claude?'◆Claude':''}: 月${c.raw.x}発話 / スコア${c.raw.y}`}}},
+ options:{plugins:{legend:{position:'bottom'},tooltip:{callbacks:{label:c=>`${c.raw.name||c.raw.user}${c.raw.claude?' ◆Claude':''}: 月${c.raw.x}発話 / スコア${c.raw.y}`}}},
  scales:{x:{type:'logarithmic',title:{display:true,text:'月あたり発話数 →'}},y:{min:0,max:100,title:{display:true,text:'リテラシー →'},grid:{color:c=>c.tick.value==Math.round(D.median_lit)?'#f2c14e':'#2c3a58'}}}}});
 new Chart(groupquad,{type:'bar',data:{labels:D.groupquad.map(g=>g.label),datasets:['Q1','Q2','Q3','Q4'].map(q=>({
   label:q+' '+QN[q],data:D.groupquad.map(g=>g[q]),backgroundColor:QC[q]}))},
@@ -201,19 +248,23 @@ document.querySelectorAll('.fb.cb').forEach(b=>b.onclick=()=>{document.querySele
 document.querySelectorAll('.fb.pb').forEach(b=>b.onclick=()=>{document.querySelectorAll('.fb.pb').forEach(x=>x.classList.remove('on'));b.classList.add('on');partnerOrder=b.dataset.o;drawPartner();});
 
 // ---- ユーザー表：ソート(A) / プリセット(B) / 行フィルタ / CSV(D) ----
-const cols=[['user','ユーザー','l'],['group','グループ',''],['q','象限',''],['claude','Claude',''],['am','稼働月',''],['convs','会話',''],['msgs','発話',''],['mpm','月/発話',''],['lit','ﾘﾃﾗｼｰ',''],['adv','高度%',''],['sp','SP発話%',''],['over','過剰',''],['top','最多用途','l']];
+const cols=[['name','氏名','l'],['dept','部署','l'],['group','グループ',''],['q','象限',''],['claude','Claude',''],['am','稼働月',''],['convs','会話',''],['msgs','発話',''],['mpm','月/発話',''],['lit','ﾘﾃﾗｼｰ',''],['adv','高度%',''],['sp','SP発話%',''],['over','過剰',''],['top','最多用途','l']];
 let sortK='lit',dir=-1,customCmp=null,customKey=null;
-let fG='ALL',fQ='ALL',fC='ALL',fA='ALL',fO='ALL';
+let fG='ALL',fQ='ALL',fC='ALL',fA='ALL',fO='ALL',fT='';
 const thead=document.querySelector('#utbl thead'),tbody=document.querySelector('#utbl tbody');
+const esc=s=>String(s==null?'':s).replace(/[&<>]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[m]));
+function hl(s){s=esc(s);if(!fT)return s;const q=fT.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');return s.replace(new RegExp('('+q+')','ig'),'<mark>$1</mark>');}
 function drawHead(){thead.innerHTML='<tr>'+cols.map(c=>{const arrow=(!customCmp&&sortK==c[0])?(dir<0?' ▼':' ▲'):'';return `<th class="${c[2]}${(!customCmp&&sortK==c[0])?' sorted':''}" data-k="${c[0]}">${c[1]}${arrow}</th>`}).join('')+'</tr>';
-  thead.querySelectorAll('th').forEach(th=>th.onclick=()=>{const k=th.dataset.k;customCmp=null;customKey=null;document.querySelectorAll('.fb.preset').forEach(x=>x.classList.remove('on'));if(sortK==k)dir*=-1;else{sortK=k;dir=(k=='user'||k=='top'||k=='group')?1:-1}render()});}
-function getRows(){let rs=D.users.filter(u=>(fG=='ALL'||u.group==fG)&&(fQ=='ALL'||u.q==fQ)&&(fC=='ALL'||(fC=='Y'?u.claude:!u.claude))&&(fA=='ALL'||(fA=='Y'?u.active:!u.active))&&(fO=='ALL'||u.over>0));
+  thead.querySelectorAll('th').forEach(th=>th.onclick=()=>{const k=th.dataset.k;customCmp=null;customKey=null;document.querySelectorAll('.fb.preset').forEach(x=>x.classList.remove('on'));if(sortK==k)dir*=-1;else{sortK=k;dir=(k=='name'||k=='dept'||k=='user'||k=='top'||k=='group')?1:-1}render()});}
+function matchText(u){if(!fT)return true;const hay=[u.name,u.kana,u.email,u.user,u.dept,u.title].join(' ').toLowerCase();return hay.includes(fT.toLowerCase());}
+function getRows(){let rs=D.users.filter(u=>matchText(u)&&(fG=='ALL'||u.group==fG)&&(fQ=='ALL'||u.q==fQ)&&(fC=='ALL'||(fC=='Y'?u.claude:!u.claude))&&(fA=='ALL'||(fA=='Y'?u.active:!u.active))&&(fO=='ALL'||u.over>0));
   if(customCmp)rs=rs.slice().sort(customCmp);
-  else rs=rs.slice().sort((a,b)=>{let x=a[sortK],y=b[sortK];if(typeof x=='string')return String(x).localeCompare(String(y))*dir;return (x-y)*dir});
+  else rs=rs.slice().sort((a,b)=>{let x=a[sortK=='name'?'kana':sortK]||a[sortK],y=b[sortK=='name'?'kana':sortK]||b[sortK];if(typeof x=='string')return String(x).localeCompare(String(y),'ja')*dir;return (x-y)*dir});
   return rs;}
+function litTitle(u){return `リテラシー総合 ${u.lit}\n─────────────\n1会話あたり往復: ${u.turns}\n初回発話の具体性: ${u.plen}字\n高度ツール活用率: ${u.adv}%\n用途の多様性: ${u.catdiv}種\n構造化プロンプト率: ${u.struct}%\n利用ツール種類: ${u.tools}種`;}
 function render(){const rs=getRows();drawHead();
-  tbody.innerHTML=rs.map(u=>`<tr><td class="l">${u.user}${u.claude?' ◆':''}</td><td><span class="gtag" style="background:${GC[u.group]}">${(D.grplabel[u.group]||u.group).slice(0,4)}</span></td><td><span class="qtag" style="background:${QC[u.q]}">${u.q}</span></td><td>${u.claude?'●':''}</td><td>${u.am}</td><td>${u.convs}</td><td>${u.msgs}</td><td>${u.mpm}</td><td><b>${u.lit}</b></td><td>${u.adv}</td><td>${u.sp}</td><td>${u.over>0?'<b style=color:#ef8a67>'+u.over+'</b>':0}</td><td class="l" style="font-size:11px">${u.top}</td></tr>`).join('');
-  document.getElementById('cnt').textContent=rs.length+'名';}
+  tbody.innerHTML=rs.map(u=>`<tr><td class="l namecell"><span class="uname" title="${esc(u.name)}">${hl(u.name)}${u.claude?' ◆':''}</span><br><span class="usub" title="${esc(u.email)}">${hl(u.user)}</span></td><td class="l deptcell"><span class="usub" title="${esc((u.dept||'—')+(u.title?' / '+u.title:''))}">${hl(u.dept)||'—'}${u.title?' / '+hl(u.title):''}</span></td><td><span class="gtag" style="background:${GC[u.group]}">${(D.grplabel[u.group]||u.group).slice(0,4)}</span></td><td><span class="qtag" style="background:${QC[u.q]}">${u.q}</span></td><td>${u.claude?'●':''}</td><td>${u.am}</td><td>${u.convs}</td><td>${u.msgs}</td><td>${u.mpm}</td><td class="litcell" title="${esc(litTitle(u))}"><b>${u.lit}</b></td><td>${u.adv}</td><td>${u.sp}</td><td>${u.over>0?'<b style=color:#ef8a67>'+u.over+'</b>':0}</td><td class="l" style="font-size:11px">${u.top}</td></tr>`).join('');
+  document.getElementById('cnt').textContent=rs.length+'名'+(fT?`（「${esc(fT)}」で絞込）`:'');}
 
 // プリセット(B)
 const presets=[
@@ -243,11 +294,16 @@ document.getElementById('filters').innerHTML=
 function bind(cls,set){document.querySelectorAll('.fb.'+cls).forEach(b=>b.onclick=()=>{document.querySelectorAll('.fb.'+cls).forEach(x=>x.classList.remove('on'));b.classList.add('on');set(b.dataset.f);render()})}
 bind('g',v=>fG=v);bind('q',v=>fQ=v);bind('c',v=>fC=v);bind('a',v=>fA=v);bind('o',v=>fO=v);
 
+// 検索（氏名・カナ・メール・部署・役職）
+const usearch=document.getElementById('usearch');
+usearch.addEventListener('input',()=>{fT=usearch.value.trim();render();});
+document.getElementById('usearchclr').onclick=()=>{usearch.value='';fT='';render();usearch.focus();};
+
 // CSV(D)
 document.getElementById('csvbtn').onclick=()=>{const rs=getRows();
-  const head=['ユーザー','グループ','象限','Claude併用','稼働','稼働月','会話','発話','月あたり発話','リテラシー','高度ツール%','SP発話%','過剰候補','最多用途'];
+  const head=['氏名','カナ','メール','部署','役職','グループ','象限','Claude併用','稼働','稼働月','会話','発話','月あたり発話','リテラシー','往復','具体性(字)','高度ツール%','用途多様性','構造化%','ツール種類','SP発話%','過剰候補','最多用途'];
   const lines=[head.join(',')];
-  rs.forEach(u=>{const row=[u.user,D.grplabel[u.group]||u.group,u.q,u.claude?'●':'',u.active?'稼働':'非稼働',u.am,u.convs,u.msgs,u.mpm,u.lit,u.adv,u.sp,u.over,u.top]
+  rs.forEach(u=>{const row=[u.name,u.kana,u.email,u.dept,u.title,D.grplabel[u.group]||u.group,u.q,u.claude?'●':'',u.active?'稼働':'非稼働',u.am,u.convs,u.msgs,u.mpm,u.lit,u.turns,u.plen,u.adv,u.catdiv,u.struct,u.tools,u.sp,u.over,u.top]
     .map(v=>{v=String(v);return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v});lines.push(row.join(','))});
   const blob=new Blob(['﻿'+lines.join('\r\n')],{type:'text/csv;charset=utf-8'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='exabase_users.csv';a.click();};
@@ -263,6 +319,40 @@ document.getElementById('recos').innerHTML=`
 <div class="ins" style="border-left-color:var(--q4)"><b>ユーザー（${gqm.user?gqm.user.total:0}名）</b>：Q4が${gqm.user?gqm.user.Q4:0}名と最も未活用。成功体験設計とオンボーディングを重点投入。一方Q1が${gqm.user?gqm.user.Q1:0}名おり、コア候補として引き上げる。</div>
 <div class="ins" style="border-left-color:var(--pre)"><b>コスト最適化</b>：リテラシーとStandard/Premium選択は無相関。単純用途（メール・校正・一般質問）はEconomy既定とし、上位モデルはファイル分析・深いリサーチ・複雑推論に限定するモデル推奨ガイドを整備。過剰スペック候補は全期間で${D.overspec_count.toLocaleString()}件。</div>
 <div class="ins" style="border-left-color:#8891a5"><b>Claude併用者（${cu}）</b>：高度用途はClaude（Claude Code含む）で対応するためExaBaseの上位モデル利用が少ない。能力評価やコスト最適化の解釈時は除外して扱う。</div>`;
+
+// ---- リテラシー向上ガイド ----
+const advLatest=M[M.length-1].adv_rate;
+const LM=[
+ ['会話の深さ（1会話あたり往復）','18%','一問一答で終えず、出力を評価して追加依頼・修正指示を重ねる。'],
+ ['プロンプトの具体性（初回文字数）','18%','目的・背景・制約・出力形式を書く。曖昧な短い依頼を避ける。'],
+ ['高度ツール活用率 ★最重要','20%','Deep Research・文書検索(RAG)・ファイル出力などを使う。全社で数%と最も伸びしろが大きい。'],
+ ['用途の多様性（カテゴリ数）','16%','メールだけでなく資料作成・データ処理・リサーチ等へ用途を広げる。'],
+ ['構造化プロンプト率','18%','役割設定・箇条書き・条件提示など、構造化した指示を使う。'],
+ ['利用ツール種類数','10%','使いこなすツールの幅を広げる。'],
+];
+document.getElementById('litguide').innerHTML=`
+<h3>🎯 リテラシー向上は「どのグラフ・指標」を見ればいい？</h3>
+<p>リテラシー複合スコアは下の<b>6指標の加重平均</b>（利用者内の相対順位）です。スコアを上げる＝各指標を伸ばすこと。中でも<b style="color:#8fd0ff">高度ツール活用率</b>が最大のレバーで、全社ではまだ数%（直近 約${advLatest}%）にとどまります。</p>
+<div style="font-size:12.5px;margin:2px 0 4px">観測すべき場所：
+<span class="watch">① 高度ツール活用率の推移（全社トレンド）</span>
+<span class="watch">② 4象限の縦軸＝個人のリテラシー（右上Q1へ）</span>
+<span class="watch">⑤ ユーザー表「リテラシー」列にホバー→弱点の内訳</span></div>
+<div class="metrics">${LM.map(m=>`<div class="metric"><div class="mh">${m[0]}<span class="mw">重み${m[1]}</span></div><div class="md">${m[2]}</div></div>`).join('')}</div>`;
+
+// ---- 各グラフの「見方・示唆」 ----
+const S=(id,h)=>{const el=document.getElementById(id);if(el)el.innerHTML=h;};
+const L=M[M.length-1], F0=M[0], spNow=Math.round((L.std+L.pre)/(L.eco+L.std+L.pre)*100||0);
+const catTop=[...D.cats].sort((a,b)=>b.convs-a.convs)[0], catTot=D.cats.reduce((s,c)=>s+c.convs,0);
+const pTop=[...D.partners].sort((a,b)=>b.msgs-a.msgs)[0];
+S('cins_adoption',`<span class="see">見方</span>：折れ線=累計/アクティブ、棒=新規。右肩上がりなら定着が進行。<br><span class="imp">示唆</span>：アクティブ <b>${F0.active_users}→${L.active_users}名</b>、累計 <b>${L.cum_users}名</b>。新規が細ると頭打ち＝新規オンボーディングの再強化サイン。`);
+S('cins_volume',`<span class="see">見方</span>：棒=会話数、線=メッセージ数（右軸）。<br><span class="imp">示唆</span>：会話 <b>${F0.convs}→${L.convs}件</b>。1会話あたりメッセージが増えるほど「深い使い方」が浸透。`);
+S('cins_tier',`<span class="see">見方</span>：黄+橙=従量課金(Standard/Premium)の発話割合。<br><span class="imp">示唆</span>：直近の従量課金比率 <b>約${spNow}%</b>。これが上振れするとコスト増。単純用途はEconomy誘導で圧縮。`);
+S('cins_adv',`<span class="see">見方</span>：線=高度ツール活用率（＝リテラシーの最重要指標）、棒=過剰スペック候補。<br><span class="imp">示唆</span>：<b>この線が上がるほど組織リテラシーが向上</b>。直近 約<b>${L.adv_rate}%</b>。棒（過剰候補）が下がればコスト最適化が進行。`);
+S('cins_scatter',`<span class="see">見方</span>：横=月あたり発話（頻度）、縦=リテラシー。<b>右上(Q1)が理想、左下(Q4)が未活用</b>。<br><span class="imp">示唆</span>：点を上（リテラシー）へ動かすのが育成、右（頻度）へ動かすのが定着。色=管理グループとのズレも確認。`);
+S('cins_groupquad',`<span class="see">見方</span>：グループ別のQ1〜Q4構成。<br><span class="imp">示唆</span>：Q1(緑)比率が高いほど実態が伴う。ライト×Q4=定着支援、ユーザー×Q1=コア候補として抽出（⑤の表で絞込可）。`);
+S('cins_groupm',`<span class="see">見方</span>：グループ別の月次アクティブ人数（積み上げ）。<br><span class="imp">示唆</span>：ライト・ユーザー層の伸びが横展開の進捗。特定グループが停滞していれば重点支援の対象。`);
+S('cins_cat',`<span class="see">見方</span>：業務内容の12分類別 会話数。<br><span class="imp">示唆</span>：最多は<b>${catTop.name}</b>（${Math.round(catTop.convs/catTot*100)}%）。単純用途に偏る場合は高度用途（分析・リサーチ）への引き上げ余地。`);
+S('cins_partner',`<span class="see">見方</span>：モデル別メッセージ数（緑Eco/黄Std/橙Pre）。<br><span class="imp">示唆</span>：最多は<b>${pTop.model}</b>。黄・橙(従量課金)に偏る用途はモデル推奨ガイドで最適化。`);
 
 document.getElementById('foot').innerHTML=`リテラシー複合スコア=会話の深さ18%+プロンプト具体性18%+高度ツール活用率20%+用途多様性16%+構造化プロンプト率18%+ツール種類数10%（利用者内百分位の加重平均）。利用頻度=稼働月あたり発話数で正規化。4象限は中央値（月あたり発話 ${D.median_freq.toFixed?D.median_freq.toFixed(1):D.median_freq} ／ スコア ${D.median_lit}）で分割。内容分類は全 ${t.convs.toLocaleString()} 会話をAIが12カテゴリに分類。グループはメンバー権限（core/light/user）に基づく。`;
 </script>
