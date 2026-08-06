@@ -9,11 +9,11 @@ import json
 from collections import defaultdict, Counter
 import statistics
 
-conv=json.load(open('conversations_all.json'))
-cls=json.load(open('classification_all.json'))
-members=json.load(open('members.json'))
-rows=json.load(open('user_all.json'))
-meta=json.load(open('meta_all.json'))
+conv=json.load(open('conversations_all.json',encoding='utf-8'))
+cls=json.load(open('classification_all.json',encoding='utf-8'))
+members=json.load(open('members.json',encoding='utf-8'))
+rows=json.load(open('user_all.json',encoding='utf-8'))
+meta=json.load(open('meta_all.json',encoding='utf-8'))
 CATN=meta['cat_names']; GL=meta['grp_label']
 ADV={'Deep Research (詳細)','文書検索 (RAG)','スライド作成 (PowerPoint)','ファイル出力 (Word、Excelなど)','ウェブリサーチ (高速)','国内記事検索','官公需案件検索','音声書き起こし','画像生成 (高性能, GPT-image)','画像生成 (高速, Nano Banana)','SharePointファイル検索','Teams検索','Outlookカレンダー予定確認','Box検索','ヘルプページ検索'}
 SIMPLE={'C01','C02','C11','C12'}
@@ -113,7 +113,7 @@ agg={'months':months,'monthly':monthly,'monthly_group':monthly_group,'partners':
         'eco':sum(c['user_msgs'] for c in conv if c['tier']=='Economy'),
         'std':sum(c['user_msgs'] for c in conv if c['tier']=='Standard'),
         'pre':sum(c['user_msgs'] for c in conv if c['tier']=='Premium')}}
-json.dump(agg, open('aggregates_all.json','w'), ensure_ascii=False)
+json.dump(agg, open('aggregates_all.json','w',encoding='utf-8'), ensure_ascii=False)
 print('months:',len(months),months[0],'..',months[-1])
 print('overspec (excl claude):',len(overspec))
 print('groupquad:')

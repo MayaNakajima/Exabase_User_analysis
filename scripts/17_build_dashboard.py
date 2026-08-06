@@ -49,7 +49,9 @@ def main():
                    # リテラシー6サブ指標（内訳表示・向上余地の可視化用）
                    "turns": round(u["avg_turns"], 1), "plen": round(u["avg_len"]),
                    "struct": round(u["struct_rate"] * 100), "catdiv": u["cat_div"],
-                   "tools": u["distinct_tools"]})
+                   "tools": u["distinct_tools"],
+                   # 補正の可視化: 手戻り率・テンプレ率
+                   "rework": round(u.get("rework_rate", 0) * 100), "tmpl": round(u.get("tmpl_rate", 0) * 100)})
     print(f"社員マスタ突合: {matched}/{len(rows)}名（未突合はメール表示でフォールバック）")
 
     data = {"totals": agg["totals"], "monthly": agg["monthly"], "monthly_group": agg["monthly_group"],

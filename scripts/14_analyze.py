@@ -2,15 +2,26 @@
 import os, sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from config import DATA, OUTPUT
+from config import DATA, OUTPUT, norm_key, TEMPLATE_MIN_USERS
 os.chdir(DATA)   # 相対パスの read/write は data/ に解決
 
 import json, re, bisect, math, statistics
 from collections import defaultdict, Counter
 
-conv=json.load(open('conversations_all.json'))
-cls=json.load(open('classification_all.json'))
-members=json.load(open('members.json'))
+conv=json.load(open('conversations_all.json',encoding='utf-8'))
+cls=json.load(open('classification_all.json',encoding='utf-8'))
+members=json.load(open('members.json',encoding='utf-8'))
+
+# ---- テンプレ/エージェント由来の初回発話を検出（水増し補正）----
+# 同一の正規化初回発話を TEMPLATE_MIN_USERS 人以上が共有 → 定型文とみなす。
+# その発話の「文字数」「構造化」は本人の作文力ではないため、加点対象から除外する。
+_fu_users=defaultdict(set)
+for c in conv:
+    if c.get('first_user_msg'):
+        _fu_users[norm_key(c['first_user_msg'])].add(c['user'])
+TEMPLATE_KEYS={k for k,us in _fu_users.items() if k and len(us)>=TEMPLATE_MIN_USERS}
+def is_template(msg):
+    return bool(msg) and norm_key(msg) in TEMPLATE_KEYS
 
 CATN={'C01':'メール作成・返信・添削','C02':'文章校正・言い換え・敬語','C03':'資料・企画書・スライド作成',
 'C04':'報告書・議事録作成','C05':'営業戦略・企業リサーチ・ABM分析','C06':'製品・素材・技術の相談',
@@ -42,15 +53,26 @@ def minfo(email):
 U=defaultdict(lambda:{'convs':0,'umsgs':0,'amsgs':0,'turns':[],'lens':[],'tools':Counter(),
     'toolconvs':0,'advconvs':0,'cats':Counter(),'struct':0,'tiers':Counter(),
     'months':Counter(),'stdprem':0,'overspec':0,'partners':Counter(),
+    'rework':0,'tmpl_convs':0,
     'mon_msgs':defaultdict(int),'mon_convs':defaultdict(int),'mon_tier':defaultdict(Counter),
     'mon_adv':defaultdict(int),'mon_cats':defaultdict(Counter)})
 for c in conv:
     u=U[c['user']]; mo=c['month']
+    tmpl=is_template(c['first_user_msg'])
+    # 会話の深さ: 手戻り/やり直し発話を差引いた「実質往復」（最低1）
+    adj_turns=max(1, c['user_msgs']-c.get('rework_msgs',0))
     u['convs']+=1; u['umsgs']+=c['user_msgs']; u['amsgs']+=c['asst_msgs']
-    u['turns'].append(c['user_msgs']); u['lens'].append(c['first_len'])
+    u['rework']+=c.get('rework_msgs',0)
+    u['turns'].append(adj_turns)
+    # 具体性(文字数): テンプレ由来の初回発話は本人の作文でないため集計から除外
+    if not tmpl:
+        u['lens'].append(c['first_len'])
+    else:
+        u['tmpl_convs']+=1
     u['cats'][c['cat']]+=1; u['tiers'][c['tier']]+=c['user_msgs']; u['months'][mo]+=1
     u['partners'][c['model']]+=1
-    if is_structured(c['first_user_msg']): u['struct']+=1
+    # 構造化: テンプレ由来の構造は本人のリテラシーではないため加点しない（分母は全会話）
+    if is_structured(c['first_user_msg']) and not tmpl: u['struct']+=1
     adv=any(t in ADV for t in c['tools'])
     if c['tools']:
         u['toolconvs']+=1
@@ -82,6 +104,8 @@ for email,u in U.items():
         'cat_div':len([k for k in u['cats']]),
         'struct_rate':u['struct']/u['convs'] if u['convs'] else 0,
         'distinct_tools':len(u['tools']),
+        'rework_rate':u['rework']/u['umsgs'] if u['umsgs'] else 0,
+        'tmpl_rate':u['tmpl_convs']/u['convs'] if u['convs'] else 0,
         'stdprem':u['stdprem'],'overspec':u['overspec'],
         'tiers':dict(u['tiers']),'cats':dict(u['cats']),
         'first_month':min(u['months']) if u['months'] else '',
@@ -107,6 +131,10 @@ for r in rows:
     tot=sum(r['tiers'].values()) or 1
     r['sp_share']=(r['tiers'].get('Standard',0)+r['tiers'].get('Premium',0))/tot
 
+tot_rework=sum(c.get('rework_msgs',0) for c in conv); tot_umsg=sum(c['user_msgs'] for c in conv)
+tot_tmpl=sum(1 for c in conv if is_template(c.get('first_user_msg')))
+print(f'補正: テンプレ定型文キー {len(TEMPLATE_KEYS)}種 / テンプレ由来会話 {tot_tmpl}件({tot_tmpl/len(conv)*100:.1f}%) / '
+      f'手戻り発話 {tot_rework}件(全発話の{tot_rework/tot_umsg*100:.1f}%)')
 print('users:',len(rows),'median msgs/active-month:',round(mf,1),'median literacy:',ml)
 print('quadrants:',dict(Counter(r['quadrant'] for r in rows)))
 # correlations
@@ -125,7 +153,7 @@ print('--- group x quadrant ---')
 for g in ['core','light','user','former','none']:
     if g in gq: print(' ',GRP_LABEL[g], dict(gq[g]))
 
-json.dump(rows, open('user_all.json','w'), ensure_ascii=False)
+json.dump(rows, open('user_all.json','w',encoding='utf-8'), ensure_ascii=False)
 json.dump({'median_freq':mf,'median_lit':ml,'cat_names':CATN,'grp_label':GRP_LABEL},
-          open('meta_all.json','w'), ensure_ascii=False)
+          open('meta_all.json','w',encoding='utf-8'), ensure_ascii=False)
 print('saved user_all.json, meta_all.json')

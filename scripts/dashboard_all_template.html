@@ -69,6 +69,12 @@ td.l,th.l{text-align:left}
 .metric .mw{float:right;font-size:11px;color:#8fd0ff;font-weight:700}
 .metric .md{font-size:11.5px;color:var(--mut);margin-top:5px;line-height:1.55}
 .watch{display:inline-block;background:#6fb7e822;border:1px solid #6fb7e855;color:#8fd0ff;border-radius:6px;padding:1px 7px;font-size:11px;margin:3px 4px 0 0}
+.evalbox{margin-top:12px;border-top:1px solid var(--bd);padding-top:8px}
+.evalbox summary{cursor:pointer;font-size:12.5px;color:#8fd0ff;font-weight:700;user-select:none}
+.evalbox summary:hover{color:#b7e0ff}
+.evalbody{font-size:12px;color:var(--mut);line-height:1.75;margin-top:8px}
+.evalbody b{color:var(--tx)}
+.evalbody p{margin-bottom:8px}
 /* 検索ボックス */
 .searchbar{display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap}
 .searchbar input{background:var(--card2);border:1px solid var(--bd);color:var(--tx);padding:7px 12px;border-radius:8px;font-size:13px;min-width:280px;flex:1;max-width:420px}
@@ -149,7 +155,7 @@ mark{background:#f2c14e;color:#08152b;border-radius:2px;padding:0 1px}
 <section class="dsec" data-sec="table">
 <h2>⑤ ユーザー別 明細</h2>
 <div class="searchbar">
-  <input id="usearch" type="search" placeholder="🔍 氏名・カナ・メール・部署で検索（例: 中島 / ナカジマ / nakajima / マーケティング）" autocomplete="off">
+  <input id="usearch" type="search" placeholder="🔍 氏名・カナ・メール・部署で検索（部分一致）" autocomplete="off">
   <span class="clr" id="usearchclr">クリア</span>
 </div>
 <div class="filters" id="presets"><span class="flabel">クイック並び替え:</span></div>
@@ -261,7 +267,7 @@ function getRows(){let rs=D.users.filter(u=>matchText(u)&&(fG=='ALL'||u.group==f
   if(customCmp)rs=rs.slice().sort(customCmp);
   else rs=rs.slice().sort((a,b)=>{let x=a[sortK=='name'?'kana':sortK]||a[sortK],y=b[sortK=='name'?'kana':sortK]||b[sortK];if(typeof x=='string')return String(x).localeCompare(String(y),'ja')*dir;return (x-y)*dir});
   return rs;}
-function litTitle(u){return `リテラシー総合 ${u.lit}\n─────────────\n1会話あたり往復: ${u.turns}\n初回発話の具体性: ${u.plen}字\n高度ツール活用率: ${u.adv}%\n用途の多様性: ${u.catdiv}種\n構造化プロンプト率: ${u.struct}%\n利用ツール種類: ${u.tools}種`;}
+function litTitle(u){return `リテラシー総合 ${u.lit}（母集団内の百分位を加重平均）\n─────────────\n会話の深さ(手戻り除く): ${u.turns} 往復\n具体性(テンプレ除く初回文字数): ${u.plen}字\n高度ツール活用率: ${u.adv}%\n用途の多様性: ${u.catdiv}種\n構造化率(テンプレ除く): ${u.struct}%\n利用ツール種類: ${u.tools}種\n─ 補正の参考 ─\n手戻り率: ${u.rework}%  ／ テンプレ率: ${u.tmpl}%`;}
 function render(){const rs=getRows();drawHead();
   tbody.innerHTML=rs.map(u=>`<tr><td class="l namecell"><span class="uname" title="${esc(u.name)}">${hl(u.name)}${u.claude?' ◆':''}</span><br><span class="usub" title="${esc(u.email)}">${hl(u.user)}</span></td><td class="l deptcell"><span class="usub" title="${esc((u.dept||'—')+(u.title?' / '+u.title:''))}">${hl(u.dept)||'—'}${u.title?' / '+hl(u.title):''}</span></td><td><span class="gtag" style="background:${GC[u.group]}">${(D.grplabel[u.group]||u.group).slice(0,4)}</span></td><td><span class="qtag" style="background:${QC[u.q]}">${u.q}</span></td><td>${u.claude?'●':''}</td><td>${u.am}</td><td>${u.convs}</td><td>${u.msgs}</td><td>${u.mpm}</td><td class="litcell" title="${esc(litTitle(u))}"><b>${u.lit}</b></td><td>${u.adv}</td><td>${u.sp}</td><td>${u.over>0?'<b style=color:#ef8a67>'+u.over+'</b>':0}</td><td class="l" style="font-size:11px">${u.top}</td></tr>`).join('');
   document.getElementById('cnt').textContent=rs.length+'名'+(fT?`（「${esc(fT)}」で絞込）`:'');}
@@ -323,11 +329,11 @@ document.getElementById('recos').innerHTML=`
 // ---- リテラシー向上ガイド ----
 const advLatest=M[M.length-1].adv_rate;
 const LM=[
- ['会話の深さ（1会話あたり往復）','18%','一問一答で終えず、出力を評価して追加依頼・修正指示を重ねる。'],
- ['プロンプトの具体性（初回文字数）','18%','目的・背景・制約・出力形式を書く。曖昧な短い依頼を避ける。'],
+ ['会話の深さ（実質往復）','18%','一問一答で終えず、出力を評価して追加依頼・改善指示を重ねる。<b>手戻り(やり直し)発話は差引</b>いて算出。'],
+ ['プロンプトの具体性（初回文字数）','18%','目的・背景・制約・出力形式を書く。曖昧な短い依頼を避ける。<b>テンプレ定型文は除外</b>（本人の作文のみ評価）。'],
  ['高度ツール活用率 ★最重要','20%','Deep Research・文書検索(RAG)・ファイル出力などを使う。全社で数%と最も伸びしろが大きい。'],
  ['用途の多様性（カテゴリ数）','16%','メールだけでなく資料作成・データ処理・リサーチ等へ用途を広げる。'],
- ['構造化プロンプト率','18%','役割設定・箇条書き・条件提示など、構造化した指示を使う。'],
+ ['構造化プロンプト率','18%','役割設定・箇条書き・条件提示など、構造化した指示を使う。<b>テンプレ由来の構造は除外</b>。'],
  ['利用ツール種類数','10%','使いこなすツールの幅を広げる。'],
 ];
 document.getElementById('litguide').innerHTML=`
@@ -337,7 +343,21 @@ document.getElementById('litguide').innerHTML=`
 <span class="watch">① 高度ツール活用率の推移（全社トレンド）</span>
 <span class="watch">② 4象限の縦軸＝個人のリテラシー（右上Q1へ）</span>
 <span class="watch">⑤ ユーザー表「リテラシー」列にホバー→弱点の内訳</span></div>
-<div class="metrics">${LM.map(m=>`<div class="metric"><div class="mh">${m[0]}<span class="mw">重み${m[1]}</span></div><div class="md">${m[2]}</div></div>`).join('')}</div>`;
+<div class="metrics">${LM.map(m=>`<div class="metric"><div class="mh">${m[0]}<span class="mw">重み${m[1]}</span></div><div class="md">${m[2]}</div></div>`).join('')}</div>
+<details class="evalbox"><summary>📋 評価方法の概要と限界（クリックで展開）</summary>
+<div class="evalbody">
+<p><b>評価の考え方</b>：ユーザーごとに上の6指標を算出し、<b>各指標を全利用者内の百分位(0〜100)に変換</b>してから重み付き平均（0〜100）を取ります。<b>相対評価</b>のため「母集団内での位置」を表し、絶対的スキル値ではありません。利用頻度は<b>稼働月あたり発話数</b>で正規化（在籍・利用開始時期の差を排除）。頻度とリテラシーの<b>中央値</b>で4象限に分割します。</p>
+<p><b>バイアス補正（本ダッシュボード反映済み）</b>：
+① <b>手戻りの除外</b>＝「やり直し／回答が違う／エラー」等のAI失敗による再依頼を検出し、会話の深さ（往復）から差し引く（＝手戻りは"深い使い方"に加点しない）。
+② <b>テンプレ定型文の除外</b>＝同一の初回発話を複数人が共有する場合はテンプレ／エージェント由来とみなし、具体性(文字数)・構造化率の<b>加点対象から除外</b>（本人の作文力のみを評価）。</p>
+<p><b>限界（留意点）</b>：
+・内容分類とテンプレ判定は<b>初回ユーザー発話</b>を主材料とする（会話全体は見ていない）。
+・手戻り検出はキーワードベースで、正当な追加指示を一部手戻りと誤判定しうる（往復は最低1を保証）。
+・<b>2026年7月の元データ(エクスポート)が破損</b>しており、7月会話のみ手戻り補正が未適用（他指標は反映済み）。
+・高度ツールは手動の許可リスト運用（新ツールは要追加）。AI分類には僅かなばらつきがある。
+・過剰スペックは機械的定義による<b>候補</b>で、最終判断は目視推奨。
+詳細な算式・判定条件は <b>docs/評価仕様.md</b> を参照。</p>
+</div></details>`;
 
 // ---- 各グラフの「見方・示唆」 ----
 const S=(id,h)=>{const el=document.getElementById(id);if(el)el.innerHTML=h;};
