@@ -59,8 +59,9 @@ Exabase_User_analysis/
 │   ├── 13_merge_classification.py… AI分類結果を会話へ展開
 │   ├── 14_analyze.py             … 稼働月正規化・リテラシー・4象限
 │   ├── 15_aggregate.py           … 月次推移・グループ×象限・過剰スペック
-│   ├── 16_build_xlsx.py          … Excel（全期間・月次）
-│   ├── 17_build_dashboard.py     … HTMLダッシュボード（全期間）
+│   ├── 18_employee_master.py     … 社員一覧CSVをメール突合し氏名マスタ生成（氏名/カナ/部署/役職）
+│   ├── 16_build_xlsx.py          … Excel（全期間・月次｜氏名突合）
+│   ├── 17_build_dashboard.py     … HTMLダッシュボード（全期間｜氏名/検索/示唆/リテラシー向上ガイド）
 │   ├── dashboard_all_template.html
 │   ├── build_archive.py          … 保持用アーカイブ生成（月別gzipマスタ）
 │   ├── classification_prompt.md  … AI分類プロンプト
@@ -85,6 +86,8 @@ python 12_classify_prep.py
 python 13_merge_classification.py
 python 14_analyze.py
 python 15_aggregate.py
+# 氏名突合（社員一覧CSVを data/raw_exports/社員一覧*.csv に配置）:
+python 18_employee_master.py
 python 16_build_xlsx.py
 python 17_build_dashboard.py
 # 保持アーカイブ（任意・推奨）:

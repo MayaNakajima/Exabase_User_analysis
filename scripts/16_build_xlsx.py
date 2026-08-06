@@ -11,10 +11,20 @@ from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
 
-agg=json.load(open('aggregates_all.json'))
-rows=json.load(open('user_all.json'))
-meta=json.load(open('meta_all.json'))
+agg=json.load(open('aggregates_all.json',encoding='utf-8'))
+rows=json.load(open('user_all.json',encoding='utf-8'))
+meta=json.load(open('meta_all.json',encoding='utf-8'))
 CATN=meta['cat_names']; GL=meta['grp_label']
+
+# 社員一覧マスタ（18_employee_master.py）で氏名・部署をメール突合し上書き（未生成でも動作）
+import os as _os
+EMP=json.load(open('employee_master.json',encoding='utf-8')) if _os.path.exists('employee_master.json') else {}
+def disp_name(u):
+    e=EMP.get(u['user'].lower())
+    return (e['name'] if e and e.get('name') else '') or u.get('name') or u['user'].split('@')[0]
+def disp_dept(u):
+    e=EMP.get(u['user'].lower())
+    return (e.get('dept') if e else '') or ''
 F='Arial'
 HDR=Font(name=F,bold=True,color='FFFFFF',size=10); HF=PatternFill('solid',fgColor='1F4E78')
 TIT=Font(name=F,bold=True,size=14,color='1F4E78'); SUB=Font(name=F,bold=True,size=11,color='1F4E78')
@@ -108,22 +118,22 @@ for i in range(2,10): ws.column_dimensions[get_column_letter(i)].width=11
 
 # ---------- ユーザー別（全期間） ----------
 ws=wb.create_sheet('ユーザー別_全期間'); ws.sheet_view.showGridLines=False
-heads=['ユーザー','氏名','グループ','稼働','Claude\n併用','初回月','最終月','稼働\n月数','会話数','発話数','月あたり\n発話','リテラシー','4象限','平均\n往復','高度ツール%','構造化%','用途数','Std/Prem\n発話%','過剰\n候補']
+heads=['氏名','メール','部署','グループ','稼働','Claude\n併用','初回月','最終月','稼働\n月数','会話数','発話数','月あたり\n発話','リテラシー','4象限','平均\n往復','高度ツール%','構造化%','用途数','Std/Prem\n発話%','過剰\n候補']
 hdrrow(ws,1,heads)
 rr=2
 for u in sorted(rows,key=lambda x:(-x['literacy'],-x['msgs_per_month'])):
-    vals=[u['user'],u['name'],GL.get(u['group'],u['group']),'稼働' if u['active'] else '非稼働','●' if u['claude'] else '',
+    vals=[disp_name(u),u['user'],disp_dept(u),GL.get(u['group'],u['group']),'稼働' if u['active'] else '非稼働','●' if u['claude'] else '',
           u['first_month'],u['last_month'],u['active_months'],u['convs'],u['umsgs'],round(u['msgs_per_month'],1),
           u['literacy'],u['quadrant'],round(u['avg_turns'],1),round(u['adv_rate']*100,1),round(u['struct_rate']*100,1),
           u['cat_div'],round(u['sp_share']*100),u['overspec']]
     for i,v in enumerate(vals,1):
-        cell=put(ws,rr,i,v,NM,L2 if i in(1,2) else CEN)
-        if i==3: cell.fill=PatternFill('solid',fgColor=GF.get(u['group'],'FFFFFF'))
-        if i==13: cell.fill=PatternFill('solid',fgColor=QF[u['quadrant']])
-        if i==12: cell.font=BLD
+        cell=put(ws,rr,i,v,NM,L2 if i in(1,2,3) else CEN)
+        if i==4: cell.fill=PatternFill('solid',fgColor=GF.get(u['group'],'FFFFFF'))
+        if i==14: cell.fill=PatternFill('solid',fgColor=QF[u['quadrant']])
+        if i==13: cell.font=BLD
     rr+=1
-ws.freeze_panes='C2'; ws.auto_filter.ref=f'A1:{get_column_letter(len(heads))}{rr-1}'
-W=[24,14,13,8,7,9,9,7,8,9,9,10,7,7,10,9,7,10,7]
+ws.freeze_panes='D2'; ws.auto_filter.ref=f'A1:{get_column_letter(len(heads))}{rr-1}'
+W=[16,22,30,13,8,7,9,9,7,8,9,9,10,7,7,10,9,7,10,7]
 for i,w in enumerate(W,1): ws.column_dimensions[get_column_letter(i)].width=w
 ws.row_dimensions[1].height=30
 
@@ -207,7 +217,7 @@ put(ws,2,1,'※ ExaBaseの上位モデル利用が少なくても能力不足で
 hdrrow(ws,4,['ユーザー','氏名','グループ','会話数','発話数','リテラシー','4象限','Std/Prem%'])
 rr=5
 for u in agg['claude_users']:
-    vals=[u['user'],u['name'],GL.get(u['group'],u['group']),u['convs'],u['umsgs'],u['literacy'],u['quadrant'],u['sp_share']]
+    vals=[u['user'],disp_name(u),GL.get(u['group'],u['group']),u['convs'],u['umsgs'],u['literacy'],u['quadrant'],u['sp_share']]
     for i,v in enumerate(vals,1): put(ws,rr,i,v,NM,L2 if i in(1,2) else CEN)
     rr+=1
 ws.column_dimensions['A'].width=28; ws.column_dimensions['B'].width=14

@@ -24,6 +24,7 @@ RAW_GLOB = "gai-export-*.xlsx"
 RAW_EXPORTS = DATA / "raw_exports"    # 月次xlsxの正本アーカイブ（gitignore）
 ARCHIVE = DATA / "archive"            # 月別gzip正規化マスタ（gitignore）
 MEMBERS_GLOB = "gai-members-export-*.xlsx"  # メンバー一覧（raw_exports配下）
+SHAIN_GLOB = "社員一覧*.csv"  # 人事の社員一覧CSV（氏名突合用, Shift-JIS）。18_employee_master.py が使用
 
 # 管理グループ（メンバー権限のサブグループトークンから判定）
 GROUP_LABEL = {"core": "コアユーザー", "light": "ライトユーザー",
@@ -78,3 +79,17 @@ LITERACY_WEIGHTS = {
 
 # 過剰スペック判定: Standard/Premium かつ 単純カテゴリ かつ 往復<=この値 かつ 高度ツール未使用
 OVERSPEC_MAX_TURNS = 2
+
+# ---- 評価バイアス補正（リテラシー指標の水増し・手戻りを相殺）----
+# 会話の深さ補正: 「やり直し/空振り」を示すユーザー発話を検出し、往復数から除外する。
+# 目的＝AIの失敗による手戻り（例:「回答が希望と違う」「やり直して」）を、
+# 建設的な深掘りと同一視しないため。検出は10_ingest.pyで会話ごとに集計する。
+REWORK_PAT = re.compile(
+    r"(やり直|やりなお|もう一度|もういちど|再度|再作成|作り直|作りなお|書き直|書きなお|"
+    r"違う|ちがう|そうじゃ|そうでは|ダメ|だめ|エラー|失敗|反映され|うまくいか|"
+    r"できてい?ない|なってい?ない|表示されな|直ってい?ない|希望と|イメージと)")
+
+# プロンプト水増し補正: 同一の初回発話（正規化キー）を TEMPLATE_MIN_USERS 人以上が共有する場合、
+# テンプレート/エージェント由来とみなし、具体性(初回文字数)・構造化率の加点対象から除外する。
+# 目的＝本人の作文力ではなく定型文/AIガイドに由来する長さ・構造を、本人のリテラシーとして評価しないため。
+TEMPLATE_MIN_USERS = 3

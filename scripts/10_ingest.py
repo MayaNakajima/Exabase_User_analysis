@@ -10,7 +10,7 @@ import re
 
 import openpyxl
 
-from config import DATA, RAW_EXPORTS, RAW_GLOB
+from config import DATA, RAW_EXPORTS, RAW_GLOB, REWORK_PAT
 
 
 def tier(p):
@@ -50,7 +50,7 @@ def main():
             if c is None:
                 c = {"conv_id": conv_id, "user": user, "partner": partner,
                      "model": model_short(partner), "tier": tier(partner),
-                     "first_ts": str(ts), "user_msgs": 0, "asst_msgs": 0,
+                     "first_ts": str(ts), "user_msgs": 0, "asst_msgs": 0, "rework_msgs": 0,
                      "tools": set(), "first_user_ts": None, "first_user_msg": None, "first_len": 0}
                 convs[conv_id] = c
                 order.append(conv_id)
@@ -58,6 +58,8 @@ def main():
                 c["first_ts"] = str(ts)
             if role == "user":
                 c["user_msgs"] += 1
+                if umsg and REWORK_PAT.search(umsg):
+                    c["rework_msgs"] += 1   # 手戻り/やり直し発話（深さ補正で往復から差引）
                 if umsg and (c["first_user_ts"] is None or str(ts) < c["first_user_ts"]):
                     c["first_user_ts"] = str(ts)
                     c["first_user_msg"] = umsg
