@@ -10,6 +10,7 @@ from collections import Counter
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
+from openpyxl.chart import BarChart, Reference
 
 agg=json.load(open('aggregates_all.json',encoding='utf-8'))
 rows=json.load(open('user_all.json',encoding='utf-8'))
@@ -115,6 +116,41 @@ for m in agg['monthly_group']:
 ws.freeze_panes='B4'; ws.row_dimensions[3].height=30
 ws.column_dimensions['A'].width=10
 for i in range(2,10): ws.column_dimensions[get_column_letter(i)].width=11
+
+# ---------- 月次推移: 用途 / チャットパートナー / ツール（表＋積み上げ棒グラフ） ----------
+def trend_sheet(name, title, trend, has_other, ylabel, note=None):
+    """月次推移の1系列群を『データ表＋Excelネイティブ積み上げ棒グラフ』でシート化。"""
+    ws=wb.create_sheet(name); ws.sheet_view.showGridLines=False
+    put(ws,1,1,title,SUB,L2,bd=False)
+    if note: put(ws,2,1,note,Font(name=F,size=9,color='595959'),L2,bd=False)
+    labels=list(trend['labels'])+(['その他'] if has_other else [])
+    months=trend['months']; ncol=1+len(labels)
+    hdrrow(ws,3,['月']+labels)
+    rr=4
+    for mi,mo in enumerate(months):
+        put(ws,rr,1,mo,NM,L2)
+        vals=list(trend['data'][mi])+([trend['other'][mi]] if has_other else [])
+        for j,v in enumerate(vals,2): put(ws,rr,j,v,NM,CEN)
+        rr+=1
+    lastrow=rr-1
+    ws.freeze_panes='B4'; ws.row_dimensions[3].height=30
+    ws.column_dimensions['A'].width=10
+    for i in range(2,ncol+1): ws.column_dimensions[get_column_letter(i)].width=13
+    # 積み上げ縦棒グラフ（系列名は見出し行から取得）
+    ch=BarChart(); ch.type='col'; ch.grouping='stacked'; ch.overlap=100
+    ch.title=title; ch.y_axis.title=ylabel; ch.x_axis.title='月'
+    ch.add_data(Reference(ws,min_col=2,max_col=ncol,min_row=3,max_row=lastrow), titles_from_data=True)
+    ch.set_categories(Reference(ws,min_col=1,min_row=4,max_row=lastrow))
+    ch.height=11; ch.width=30; ch.legend.position='b'
+    ws.add_chart(ch, f'A{lastrow+3}')
+    return ws
+
+trend_sheet('月次_用途別','用途（チャット内容12分類）別 月次会話数',agg['usage_trend'],False,'会話数',
+            '棒の高さ＝月次総会話数、色の内訳＝用途ミックス。時系列での用途シフトを確認。')
+trend_sheet('月次_パートナー別','チャットパートナー（モデル）別 月次メッセージ数',agg['partner_trend'],True,'メッセージ数',
+            '上位モデル＋「その他」。従量課金モデル(Standard/Premium)の帯が厚くなるとコスト増サイン。')
+trend_sheet('月次_ツール別','ツール別 月次利用会話数',agg['tool_trend'],True,'利用会話数',
+            '上位ツール＋「その他」（1会話で複数ツール可）。高度ツールの帯が厚くなるほどリテラシー向上。')
 
 # ---------- ユーザー別（全期間） ----------
 ws=wb.create_sheet('ユーザー別_全期間'); ws.sheet_view.showGridLines=False
