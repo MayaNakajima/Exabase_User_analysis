@@ -2,7 +2,7 @@
 import os, sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from config import DATA, OUTPUT
+from config import DATA, OUTPUT, ADV_TOOLS
 os.chdir(DATA)   # 相対パスの read/write は data/ に解決
 
 import json
@@ -15,7 +15,7 @@ members=json.load(open('members.json',encoding='utf-8'))
 rows=json.load(open('user_all.json',encoding='utf-8'))
 meta=json.load(open('meta_all.json',encoding='utf-8'))
 CATN=meta['cat_names']; GL=meta['grp_label']
-ADV={'Deep Research (詳細)','文書検索 (RAG)','スライド作成 (PowerPoint)','ファイル出力 (Word、Excelなど)','ウェブリサーチ (高速)','国内記事検索','官公需案件検索','音声書き起こし','画像生成 (高性能, GPT-image)','画像生成 (高速, Nano Banana)','SharePointファイル検索','Teams検索','Outlookカレンダー予定確認','Box検索','ヘルプページ検索'}
+ADV=ADV_TOOLS   # 高度ツールの定義は config.ADV_TOOLS を唯一の定義元とする（重複定義を排除）
 SIMPLE={'C01','C02','C11','C12'}
 def grp(email):
     m=members.get(email); return m['group'] if m else 'former'
