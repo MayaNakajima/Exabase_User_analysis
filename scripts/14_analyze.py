@@ -2,7 +2,7 @@
 import os, sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from config import DATA, OUTPUT, norm_key, TEMPLATE_MIN_USERS
+from config import DATA, OUTPUT, norm_key, TEMPLATE_MIN_USERS, ADV_TOOLS
 os.chdir(DATA)   # 相対パスの read/write は data/ に解決
 
 import json, re, bisect, math, statistics
@@ -27,9 +27,7 @@ CATN={'C01':'メール作成・返信・添削','C02':'文章校正・言い換�
 'C04':'報告書・議事録作成','C05':'営業戦略・企業リサーチ・ABM分析','C06':'製品・素材・技術の相談',
 'C07':'画像生成・画像編集','C08':'要約・翻訳・文書処理','C09':'データ・Excel・表・計算',
 'C10':'IT・ツール操作サポート','C11':'アイデア出し・ネーミング・コピー','C12':'業務知識・一般調査・その他'}
-ADV={'Deep Research (詳細)','文書検索 (RAG)','スライド作成 (PowerPoint)','ファイル出力 (Word、Excelなど)',
-'ウェブリサーチ (高速)','国内記事検索','官公需案件検索','音声書き起こし','画像生成 (高性能, GPT-image)',
-'画像生成 (高速, Nano Banana)','SharePointファイル検索','Teams検索','Outlookカレンダー予定確認','Box検索','ヘルプページ検索'}
+ADV=ADV_TOOLS   # 高度ツールの定義は config.ADV_TOOLS を唯一の定義元とする（重複定義を排除）
 SIMPLE={'C01','C02','C11','C12'}
 GRP_LABEL={'core':'コアユーザー','light':'ライトユーザー','user':'ユーザー','none':'未分類','former':'退職/不明'}
 
