@@ -22,6 +22,35 @@ def model_short(p):
     return "Unknown" if not p else str(p).split("/")[0].strip()
 
 
+def split_tools(s):
+    """利用ツール列を個々のツール名に分割する。
+
+    区切りはツール間の ', '（ASCIIカンマ）だが、ツール名自体が括弧内に
+    カンマを含む場合がある（例「画像生成 (高速, Nano Banana)」「画像生成 (高性能, GPT-image)」）。
+    単純な str.split(',') では括弧内のカンマまで分割され、config.ADV_TOOLS との
+    完全一致が崩れて高度ツール活用率が過小評価される。
+    そこで括弧（半角/全角）の深さを追い、深さ0のASCIIカンマだけで分割する。
+    全角読点「、」はツール名内（例「Word、Excelなど」）にのみ現れ区切りではないため分割しない。
+    """
+    if not s:
+        return []
+    out, buf, depth = [], [], 0
+    for ch in str(s):
+        if ch in "（(":
+            depth += 1
+            buf.append(ch)
+        elif ch in "）)":
+            depth = max(0, depth - 1)
+            buf.append(ch)
+        elif ch == "," and depth == 0:
+            out.append("".join(buf))
+            buf = []
+        else:
+            buf.append(ch)
+    out.append("".join(buf))
+    return [t.strip() for t in out if t.strip()]
+
+
 def main():
     files = sorted(RAW_EXPORTS.glob(RAW_GLOB))
     if not files:
@@ -67,10 +96,8 @@ def main():
             elif role == "assistant":
                 c["asst_msgs"] += 1
             if tool:
-                for t in str(tool).split(","):
-                    t = t.strip()
-                    if t:
-                        c["tools"].add(t)
+                for t in split_tools(tool):
+                    c["tools"].add(t)
         wb.close()
         print("done", f.name)
 
