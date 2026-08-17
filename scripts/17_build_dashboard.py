@@ -56,6 +56,7 @@ def main():
 
     data = {"totals": agg["totals"], "monthly": agg["monthly"], "monthly_group": agg["monthly_group"],
             "quads": agg["quads"], "groupquad": agg["groupquad"], "cats": agg["cats"],
+            "usage_trend": agg["usage_trend"], "partner_trend": agg["partner_trend"], "tool_trend": agg["tool_trend"],
             "partners": [p for p in agg["partners"] if p["partner"] != "None"], "tools": agg["tools"][:16],
             "claude_users": agg["claude_users"], "overspec_count": agg["overspec_count"],
             "users": ud, "catnames": CATN, "grplabel": GL,

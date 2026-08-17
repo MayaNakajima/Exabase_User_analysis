@@ -62,6 +62,7 @@ Exabase_User_analysis/
 │   ├── 18_employee_master.py     … 社員一覧CSVをメール突合し氏名マスタ生成（氏名/カナ/部署/役職）
 │   ├── 16_build_xlsx.py          … Excel（全期間・月次｜氏名突合）
 │   ├── 17_build_dashboard.py     … HTMLダッシュボード（全期間｜氏名/検索/示唆/リテラシー向上ガイド）
+│   ├── 19_snapshot.py            … 処理済み中間データの保存/復元（生データなしで16/17を再生成）
 │   ├── dashboard_all_template.html
 │   ├── build_archive.py          … 保持用アーカイブ生成（月別gzipマスタ）
 │   ├── classification_prompt.md  … AI分類プロンプト
@@ -92,6 +93,10 @@ python 16_build_xlsx.py
 python 17_build_dashboard.py
 # 保持アーカイブ（任意・推奨）:
 python build_archive.py
+# 過去データ保存（任意・引き継ぎ/再生成用｜生データ不要で16/17を再現）:
+python 19_snapshot.py --zip
+#   → data/snapshots/ に処理済み中間データ一式を保存（Box共有）。
+#   受領側は: python 19_snapshot.py --restore <zip> → python 16_build_xlsx.py → python 17_build_dashboard.py
 ```
 
 詳細手順は [`docs/引き継ぎ書.md`](docs/引き継ぎ書.md)、指標定義は [`docs/仕様書.md`](docs/仕様書.md)。

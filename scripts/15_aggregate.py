@@ -78,6 +78,29 @@ catc=Counter(); cattier=defaultdict(Counter)
 for c in conv: catc[c['cat']]+=1; cattier[c['cat']][c['tier']]+=1
 cats=sorted([{'code':k,'name':CATN[k],'convs':catc[k],'economy':cattier[k].get('Economy',0),'standard':cattier[k].get('Standard',0),'premium':cattier[k].get('Premium',0)} for k in CATN],key=lambda x:-x['convs'])
 
+# ---- 月次推移: 用途(会話数) / チャットパートナー(メッセージ数) / ツール(利用会話数) ----
+# ダッシュボード④のスタック棒グラフ用。系列が多すぎないよう上位N＋「その他」に集約。
+TOP_PARTNERS=8; TOP_TOOLS=10
+model_total=Counter()
+for c in conv: model_total[c['model'] or 'None']+=c['user_msgs']+c['asst_msgs']
+top_models=[m for m,_ in model_total.most_common() if m and m!='None'][:TOP_PARTNERS]
+top_tools=[t['tool'] for t in tools][:TOP_TOOLS]
+MPm=defaultdict(Counter)  # month -> model -> メッセージ数
+MTm=defaultdict(Counter)  # month -> tool  -> 利用会話数
+for c in conv:
+    MPm[c['month']][c['model'] or 'None']+=c['user_msgs']+c['asst_msgs']
+    for t in set(c['tools']): MTm[c['month']][t]+=1
+# 用途は total 会話数の多い順（cats の並び）で全12カテゴリを系列化
+cat_codes=[c['code'] for c in cats]
+usage_trend={'labels':[CATN[k] for k in cat_codes],'codes':cat_codes,'months':months,
+    'data':[[M[mo]['cats'].get(code,0) for code in cat_codes] for mo in months]}
+partner_trend={'labels':top_models,'months':months,
+    'data':[[MPm[mo].get(m,0) for m in top_models] for mo in months],
+    'other':[sum(v for k,v in MPm[mo].items() if k not in top_models and k!='None') for mo in months]}
+tool_trend={'labels':top_tools,'months':months,
+    'data':[[MTm[mo].get(t,0) for t in top_tools] for mo in months],
+    'other':[sum(v for k,v in MTm[mo].items() if k not in top_tools) for mo in months]}
+
 # quadrants summary + group x quadrant
 QN={'Q1':'高頻度・高リテラシー','Q2':'高頻度・低リテラシー','Q3':'低頻度・高リテラシー','Q4':'低頻度・低リテラシー'}
 quad=defaultdict(lambda:{'users':0,'convs':0,'msgs':0,'lit':[],'adv':[],'overspec':0})
@@ -105,7 +128,8 @@ claude_users=[{'user':r['user'],'name':r['name'],'group':r['group'],'convs':r['c
     'literacy':r['literacy'],'quadrant':r['quadrant'],'sp_share':round(r['sp_share']*100)} for r in rows if r['claude']]
 
 agg={'months':months,'monthly':monthly,'monthly_group':monthly_group,'partners':partners,'tools':tools,
-     'cats':cats,'quads':quads,'groupquad':groupquad,'overspec_count':len(overspec),'overspec':overspec[:400],
+     'cats':cats,'usage_trend':usage_trend,'partner_trend':partner_trend,'tool_trend':tool_trend,
+     'quads':quads,'groupquad':groupquad,'overspec_count':len(overspec),'overspec':overspec[:400],
      'claude_users':claude_users,
      'totals':{'convs':len(conv),'users':len(rows),'msgs':sum(c['user_msgs']+c['asst_msgs'] for c in conv),
         'umsgs':sum(c['user_msgs'] for c in conv),'months':len(months),
@@ -120,4 +144,5 @@ print('groupquad:')
 for g in groupquad: print('  ',g['label'],'Q1',g['Q1'],'Q2',g['Q2'],'Q3',g['Q3'],'Q4',g['Q4'],'計',g['total'])
 print('claude users:',[(u['user'].split('@')[0],u['quadrant'],u['convs']) for u in claude_users])
 print('sample monthly:',monthly[0]['month'],monthly[0]['active_users'],monthly[0]['convs'],'|',monthly[-1]['month'],monthly[-1]['active_users'],monthly[-1]['convs'])
+print('trend series - usage:',len(usage_trend['labels']),'cats / partner:',len(top_models),'models / tool:',len(top_tools),'tools (+other)')
 print('saved aggregates_all.json')

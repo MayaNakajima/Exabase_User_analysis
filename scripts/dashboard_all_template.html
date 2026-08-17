@@ -150,6 +150,17 @@ mark{background:#f2c14e;color:#08152b;border-radius:2px;padding:0 1px}
   <div class="filters" style="margin-top:10px"><span class="flabel">並び:</span><div class="fb pb on" data-o="count">メッセージ順</div><div class="fb pb" data-o="name">名前順</div></div>
   <div class="cins" id="cins_partner"></div></div>
 </div>
+
+<h3 style="font-size:14px;margin:22px 0 6px;color:#8fd0ff">📈 月次推移（構成の変化を見る）</h3>
+<div class="filters"><span class="flabel">表示:</span><div class="fb tb on" data-o="count">実数</div><div class="fb tb" data-o="pct">構成比％</div></div>
+<div class="card" style="margin-bottom:16px"><h3>用途（チャット内容12分類）別 月次会話数</h3><div class="chartbox tall"><canvas id="usagetrend"></canvas></div>
+<div class="cins" id="cins_usagetrend"></div></div>
+<div class="grid2">
+  <div class="card"><h3>チャットパートナー別 月次メッセージ数（上位モデル＋その他）</h3><div class="chartbox tall"><canvas id="partnertrend"></canvas></div>
+  <div class="cins" id="cins_partnertrend"></div></div>
+  <div class="card"><h3>ツール別 月次利用会話数（上位＋その他）</h3><div class="chartbox tall"><canvas id="tooltrend"></canvas></div>
+  <div class="cins" id="cins_tooltrend"></div></div>
+</div>
 </section>
 
 <section class="dsec" data-sec="table">
@@ -193,7 +204,7 @@ const kpis=[
 document.getElementById('kpis').innerHTML=kpis.map(k=>`<div class="kpi"><div class="v">${k.v}</div><div class="l">${k.l}</div>${k.s?`<div class="s">${k.s}</div>`:''}</div>`).join('');
 
 // ---- セクション表示/非表示トグル ----
-const SECT=[['adopt','① 導入推移'],['quad','② 4象限'],['groupm','③ グループ別月次'],['usage','④ 用途/パートナー'],['table','⑤ ユーザー表'],['reco','⑥ 示唆']];
+const SECT=[['adopt','① 導入推移'],['quad','② 4象限'],['groupm','③ グループ別月次'],['usage','④ 用途/パートナー/ツール'],['table','⑤ ユーザー表'],['reco','⑥ 示唆']];
 document.getElementById('sectoggles').innerHTML=SECT.map(s=>`<div class="fb secfb on" data-sec="${s[0]}">${s[1]}</div>`).join('')+'<div class="fb" id="secall">全表示</div>';
 document.querySelectorAll('.secfb').forEach(b=>b.onclick=()=>{b.classList.toggle('on');
   document.querySelector(`section[data-sec="${b.dataset.sec}"]`).classList.toggle('hidden',!b.classList.contains('on'));});
@@ -252,6 +263,26 @@ function drawPartner(){const ps=[...D.partners];ps.sort(partnerOrder=='count'?(a
 drawCat();drawPartner();
 document.querySelectorAll('.fb.cb').forEach(b=>b.onclick=()=>{document.querySelectorAll('.fb.cb').forEach(x=>x.classList.remove('on'));b.classList.add('on');catOrder=b.dataset.o;drawCat();});
 document.querySelectorAll('.fb.pb').forEach(b=>b.onclick=()=>{document.querySelectorAll('.fb.pb').forEach(x=>x.classList.remove('on'));b.classList.add('on');partnerOrder=b.dataset.o;drawPartner();});
+
+// ---- ④ 月次推移（用途/パートナー/ツール）スタック棒。実数⇔構成比％を切替 ----
+const PAL=['#4f9cf9','#7ac47a','#f2c14e','#ef8a67','#a78bfa','#6fb7e8','#e879a6','#5ec7b8','#c0ca4d','#f0a35e','#b0bacf','#d76b6b','#8fd0ff','#9be29b'];
+let trendMode='count';const trendCharts={};
+function stackDatasets(labels,rows,extra){
+  const ds=labels.map((lab,si)=>({label:lab,data:rows.map(r=>+r[si]||0),backgroundColor:PAL[si%PAL.length],stack:'s'}));
+  if(extra)ds.push({label:'その他',data:extra.map(v=>+v||0),backgroundColor:'#5a6883',stack:'s'});
+  return ds;}
+function toPct(ds,months){const tot=months.map((_,mi)=>ds.reduce((s,d)=>s+d.data[mi],0)||1);
+  return ds.map(d=>({...d,data:d.data.map((v,mi)=>+(v/tot[mi]*100).toFixed(1))}));}
+function drawTrend(canvasId,tr,withOther){const months=tr.months,pct=trendMode=='pct';
+  let ds=stackDatasets(tr.labels,tr.data,withOther?tr.other:null);if(pct)ds=toPct(ds,months);
+  if(trendCharts[canvasId])trendCharts[canvasId].destroy();
+  trendCharts[canvasId]=new Chart(document.getElementById(canvasId),{type:'bar',data:{labels:months,datasets:ds},
+    options:{plugins:{legend:{position:'bottom',labels:{boxWidth:11,font:{size:10}}},
+      tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${pct?c.parsed.y+'%':(+c.parsed.y).toLocaleString()}`}}},
+      scales:{x:{stacked:true},y:{stacked:true,max:pct?100:undefined,title:{display:true,text:pct?'構成比％':'件数'}}}}});}
+function drawTrends(){drawTrend('usagetrend',D.usage_trend,false);drawTrend('partnertrend',D.partner_trend,true);drawTrend('tooltrend',D.tool_trend,true);}
+drawTrends();
+document.querySelectorAll('.fb.tb').forEach(b=>b.onclick=()=>{document.querySelectorAll('.fb.tb').forEach(x=>x.classList.remove('on'));b.classList.add('on');trendMode=b.dataset.o;drawTrends();});
 
 // ---- ユーザー表：ソート(A) / プリセット(B) / 行フィルタ / CSV(D) ----
 const cols=[['name','氏名','l'],['dept','部署','l'],['group','グループ',''],['q','象限',''],['claude','Claude',''],['am','稼働月',''],['convs','会話',''],['msgs','発話',''],['mpm','月/発話',''],['lit','ﾘﾃﾗｼｰ',''],['adv','高度%',''],['sp','SP発話%',''],['over','過剰',''],['top','最多用途','l']];
@@ -372,6 +403,14 @@ S('cins_groupquad',`<span class="see">見方</span>：グループ別のQ1〜Q4�
 S('cins_groupm',`<span class="see">見方</span>：グループ別の月次アクティブ人数（積み上げ）。<br><span class="imp">示唆</span>：ライト・ユーザー層の伸びが横展開の進捗。特定グループが停滞していれば重点支援の対象。`);
 S('cins_cat',`<span class="see">見方</span>：業務内容の12分類別 会話数。<br><span class="imp">示唆</span>：最多は<b>${catTop.name}</b>（${Math.round(catTop.convs/catTot*100)}%）。単純用途に偏る場合は高度用途（分析・リサーチ）への引き上げ余地。`);
 S('cins_partner',`<span class="see">見方</span>：モデル別メッセージ数（緑Eco/黄Std/橙Pre）。<br><span class="imp">示唆</span>：最多は<b>${pTop.model}</b>。黄・橙(従量課金)に偏る用途はモデル推奨ガイドで最適化。`);
+// ④ 月次推移の見方・示唆（直近月の構成から動的に生成）
+const argmax=a=>a.reduce((mi,v,i,arr)=>v>arr[mi]?i:mi,0);
+{const ut=D.usage_trend,ui=ut.months.length-1,uf=ut.data[0].reduce((a,b)=>a+b,0),ul=ut.data[ui].reduce((a,b)=>a+b,0);
+ S('cins_usagetrend',`<span class="see">見方</span>：積み上げ棒＝用途(12分類)別の月次会話数。棒の高さ＝総量、色の内訳＝用途ミックス。上部の<b>構成比％</b>に切替えると用途シフトが明確に。<br><span class="imp">示唆</span>：月次会話 <b>${uf.toLocaleString()}→${ul.toLocaleString()}件</b>。直近の最多用途は<b>${ut.labels[argmax(ut.data[ui])]}</b>。単純用途(メール・校正)の比率が高止まりなら、分析・リサーチ等の高度用途へ引き上げ余地。`);}
+{const pt=D.partner_trend,pi=pt.months.length-1;
+ S('cins_partnertrend',`<span class="see">見方</span>：上位モデル＋「その他」の月次メッセージ数。<br><span class="imp">示唆</span>：直近の最多は<b>${pt.labels[argmax(pt.data[pi])]}</b>。従量課金モデル(Standard/Premium)の帯が厚くなるとコスト増サイン。①のモデル階層推移と併読を。`);}
+{const tt2=D.tool_trend,ti=tt2.months.length-1;
+ S('cins_tooltrend',`<span class="see">見方</span>：上位ツール＋「その他」の月次利用会話数（1会話で複数ツール可）。<br><span class="imp">示唆</span>：直近の最多は<b>${tt2.labels[argmax(tt2.data[ti])]}</b>。Deep Research・文書検索(RAG)・ファイル出力など高度ツールの帯が厚くなるほど組織リテラシーが向上。`);}
 
 document.getElementById('foot').innerHTML=`リテラシー複合スコア=会話の深さ18%+プロンプト具体性18%+高度ツール活用率20%+用途多様性16%+構造化プロンプト率18%+ツール種類数10%（利用者内百分位の加重平均）。利用頻度=稼働月あたり発話数で正規化。4象限は中央値（月あたり発話 ${D.median_freq.toFixed?D.median_freq.toFixed(1):D.median_freq} ／ スコア ${D.median_lit}）で分割。内容分類は全 ${t.convs.toLocaleString()} 会話をAIが12カテゴリに分類。グループはメンバー権限（core/light/user）に基づく。`;
 </script>
