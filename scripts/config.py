@@ -20,6 +20,13 @@ OUTPUT = BASE / "output"    # 最終成果物（xlsx / html）
 # 入力エクスポートのファイル名パターン（data/ 配下）
 RAW_GLOB = "gai-export-*.xlsx"
 
+# 社内イベント出欠DB（別リポジトリ Event-Attendance-Management の SQLite）。
+# email 突合でユーザー分析に出欠指標を付与する（表示・相関のみ／グループ配分には不算入）。
+# 環境で差し替え可能なよう、存在すれば data/attendance.db を優先、無ければ既定のBoxパス。
+_EVENT_DB_LOCAL = DATA / "attendance.db"
+EVENT_DB = str(_EVENT_DB_LOCAL) if _EVENT_DB_LOCAL.exists() else (
+    r"C:\Users\612316\Box\事業推進Div□\DX推進課\生成AI\Event-Attendance-Management\data\attendance.db")
+
 # ---- 全期間（月次）パイプライン用 ----
 RAW_EXPORTS = DATA / "raw_exports"    # 月次xlsxの正本アーカイブ（gitignore）
 ARCHIVE = DATA / "archive"            # 月別gzip正規化マスタ（gitignore）
@@ -29,6 +36,26 @@ SHAIN_GLOB = "社員一覧*.csv"  # 人事の社員一覧CSV（氏名突合用, 
 # 管理グループ（メンバー権限のサブグループトークンから判定）
 GROUP_LABEL = {"core": "コアユーザー", "light": "ライトユーザー",
                "user": "ユーザー", "none": "未分類", "former": "退職/不明"}
+
+# ---- 管理者（グループ分けで自動コア＆10%母数から除外）----
+# 管理者は「自動でコア」。かつコア10%枠は "管理者を除いた在籍者" の上位10%で算定する。
+# 判定は次のいずれかに該当する在籍者（OR）:
+#   1) ADMIN_USERS に明示列挙されたメール（運用で追記＝最優先・確実）
+#   2) メンバーのサブグループタグに ADMIN_SUBGROUPS を含む（11_members が is_admin として付与）
+#   3) ADMIN_BY_OWNER=True かつ テナント権限が「オーナー」
+ADMIN_SUBGROUPS = {"onward-cd_admin", "onward-cd_DX"}
+# エクサベースAIの「管理者グループ」6名（onward-cd_admin / onward-cd_DX 所属。
+# 2026-07-14 メンバースナップショット基準）。メンバーエクスポート取込後は
+# 11_members の is_admin（タグ由来）でも自動検出されるが、確実性のため明示保持する。
+ADMIN_USERS = {
+    "a-miyairi@onward.co.jp",
+    "k-owa@onward.co.jp",
+    "kazunori.matsuyama@onward.co.jp",
+    "kentaro.takeishi@onward.co.jp",
+    "maya.nakajima@onward.co.jp",
+    "t-fujita@onward.co.jp",
+}
+ADMIN_BY_OWNER = False       # テナント権限=オーナーは管理者としない（管理者はグループ所属で判定）
 
 # Claude（Claude Code含む）利用許可者。高度用途はClaudeにオフロードするため
 # ExaBaseの上位モデル利用・リテラシー解釈に注記し、過剰スペック集計から除外する
