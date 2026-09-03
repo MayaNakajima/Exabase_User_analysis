@@ -8,7 +8,7 @@ import re
 
 import openpyxl
 
-from config import DATA, RAW_EXPORTS, MEMBERS_GLOB, CLAUDE_USERS
+from config import DATA, RAW_EXPORTS, MEMBERS_GLOB, CLAUDE_USERS, ADMIN_SUBGROUPS
 
 
 def group_of(subg):
@@ -20,6 +20,12 @@ def group_of(subg):
     if re.search(r"onward-cd_user\b", s):
         return "user"
     return "none"
+
+
+def is_admin_of(subg):
+    """サブグループタグに管理者タグ（onward-cd_admin / onward-cd_DX 等）を含むか。"""
+    s = str(subg)
+    return any(tag in s for tag in ADMIN_SUBGROUPS)
 
 
 def main():
@@ -43,6 +49,7 @@ def main():
             "active": (str(act) == "True"),
             "permission": str(gperm) if gperm else "",
             "group": group_of(subg),
+            "is_admin": is_admin_of(subg),
             "created_at": str(created)[:10] if created else "",
             "last_login": str(last)[:10] if last else "",
             "claude": email in CLAUDE_USERS,

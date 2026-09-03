@@ -63,14 +63,27 @@ Exabase_User_analysis/
 │   ├── 16_build_xlsx.py          … Excel（全期間・月次｜氏名突合）
 │   ├── 17_build_dashboard.py     … HTMLダッシュボード（全期間｜氏名/検索/示唆/リテラシー向上ガイド）
 │   ├── 19_snapshot.py            … 処理済み中間データの保存/復元（生データなしで16/17を再生成）
+│   ├── 【グループ分け統合（2026-09〜｜旧 AI_User_Group を統合）】
+│   ├── grouping_lib.py           … 受験台帳＋複数回判定＋分析指標グループ分け＋取込CSV＋出欠（純関数）
+│   ├── 20_exam_ledger.py         … AI資格試験CSV → 受験台帳（追記型・複数回受験対応）
+│   ├── 21_grouping.py            … グループ分け（分析指標＋台帳）＋group書き戻し＋管理ツール取込CSV
+│   ├── 22_event_attendance.py    … 社内イベント出欠（attendance.db）をemail突合し出欠指標
+│   ├── 【一括更新オーケストレーター】
+│   ├── update_monthly.py         … 月次フル更新（取込→分類→分析→グループ分け→成果物）
+│   ├── update_exam.py            … 試験結果を随時反映（台帳→グループ分け→ダッシュボード）
+│   ├── classify_chunks.py        … （任意）新規分類をClaude API(Haiku4.5)で自動化
 │   ├── dashboard_all_template.html
 │   ├── build_archive.py          … 保持用アーカイブ生成（月別gzipマスタ）
 │   ├── classification_prompt.md  … AI分類プロンプト
 │   └── 【単月パイプライン（旧・参考）】 01_〜07_ , dashboard_template.html
-├── data/   （gitignore: raw_exports/ archive/ 中間JSON。README.md のみ追跡）
+├── ダッシュボードを開く.cmd / open_dashboard.ps1   … 最新ダッシュボードをブラウザで開く（Python不要）
+├── グループ分け結果を開く.cmd / open_grouping.ps1  … 最新グループ分け結果Excelを開く
+├── data/   （gitignore: raw_exports/ archive/ 中間JSON・exam_ledger.csv・attendance.db。README.md のみ追跡）
 └── output/ 成果物
     ├── エクサベースAI_利用分析_全期間.xlsx
     ├── エクサベースAI_利用分析_ダッシュボード_全期間.html
+    ├── グループ分け結果.xlsx（グループ分け結果／イベント出欠×グループ）
+    ├── import.csv（ユーザー管理ツール取込用）
     └── （旧・単月）エクサベースAI_利用分析_202607.xlsx / _ダッシュボード.html
 ```
 
@@ -100,3 +113,30 @@ python 19_snapshot.py --zip
 ```
 
 詳細手順は [`docs/引き継ぎ書.md`](docs/引き継ぎ書.md)、指標定義は [`docs/仕様書.md`](docs/仕様書.md)。
+
+## グループ分け・自動更新（2026-09〜｜旧 AI_User_Group を統合）
+
+ユーザーのグループ分け（コア/ライト/ユーザー）を本ツールに統合した。**利用実績は本ツールの指標
+（稼働月正規化の `msgs_per_month`＋リテラシー）を正**とし、AI資格試験は**受験台帳**で複数回受験に
+対応（**最新回優先**）。**管理者6名は自動コア**。社内イベント出欠は表示・相関のみ（配分不算入）。
+判定ルールの詳細は [`docs/グループ分け仕様.md`](docs/グループ分け仕様.md)。
+
+**更新（作業コスト削減後の運用）**
+
+```bash
+cd scripts
+# 月初：前月の利用情報(gai-export-*.xlsx 全パート)と最新メンバーエクスポート(gai-members-export-*.xlsx)を
+#        data/raw_exports/ に配置してから：
+python update_monthly.py            # 取込→(分類ゲート)→分析→グループ分け→成果物＋取込CSV
+#   新規プロンプトがある場合：c*.json を分類し r*.json を保存 → python update_monthly.py --resume
+#   （または python update_monthly.py --api で Claude API 自動分類）
+
+# 随時：生成AIパスポート試験の結果CSVが出たら：
+python update_exam.py <試験結果CSV>   # 受験台帳へ追記→グループ分け→ダッシュボード更新
+```
+
+**パイプライン順序**：`10 → 11 → 12 →(分類)→ 13 → 14 → 22 → 21 → 15 → 18 → 16 → 17`。
+`21_grouping` が算定したグループを `members.json`/`user_all.json` に書き戻し、以降の集計・
+ダッシュボードへ反映する（group は分析計算に不使用の表示用メタのため精度に影響しない）。
+
+**閲覧（Python不要・ダブルクリック）**：`ダッシュボードを開く.cmd` / `グループ分け結果を開く.cmd`。
