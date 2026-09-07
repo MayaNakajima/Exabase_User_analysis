@@ -14,6 +14,7 @@ data/exam_ledger.csv（受験台帳）から、コア/ライト/ユーザーを�
 """
 import argparse
 import json
+import os
 import sys
 from collections import Counter
 from pathlib import Path
@@ -83,10 +84,24 @@ def main():
         json.dump(users, open(DATA / "user_all.json", "w", encoding="utf-8"), ensure_ascii=False)
         print(f"書き戻し: members.json {n_m}件 / user_all.json {n_u}件 の group を更新")
     Path(a.xlsx).parent.mkdir(parents=True, exist_ok=True)
-    with pd.ExcelWriter(a.xlsx, engine="openpyxl") as wr:
-        df.to_excel(wr, sheet_name="グループ分け結果", index=False)
-        if ev_corr is not None:
-            ev_corr.to_excel(wr, sheet_name="イベント出欠×グループ", index=False)
+    xlsx_path = a.xlsx
+
+    def _write_xlsx(path):
+        with pd.ExcelWriter(path, engine="openpyxl") as wr:
+            df.to_excel(wr, sheet_name="グループ分け結果", index=False)
+            if ev_corr is not None:
+                ev_corr.to_excel(wr, sheet_name="イベント出欠×グループ", index=False)
+
+    try:
+        _write_xlsx(xlsx_path)
+    except PermissionError:
+        # 出力先が Excel で開かれている等でロックされている場合、日時付きの別名に退避出力
+        import datetime as _dt
+        base, ext = os.path.splitext(a.xlsx)
+        xlsx_path = f"{base}_{_dt.datetime.now():%Y%m%d%H%M%S}{ext}"
+        _write_xlsx(xlsx_path)
+        print(f"警告: {a.xlsx} がロックされていたため {os.path.basename(xlsx_path)} に出力しました。"
+              f"（Excelを閉じて再実行すると正式名で保存されます）")
 
     active = int((df["アカウント状態"] == "アクティブ").sum())
     n_base = int(((df["管理者"] != "管理者") & (df["アカウント状態"] == "アクティブ")).sum())
@@ -101,7 +116,7 @@ def main():
     print("コア:", len(core), " = 管理者", core_admin, "+ ランキング", core_ranked)
     nonadmin_core_pass = int((core[core["管理者"] != "管理者"]["資格状況"] == gl.EXAM_PASS).sum())
     print("  ランキングコアの合格:", nonadmin_core_pass, "/", core_ranked, "（＝全員合格であるべき）")
-    print("saved:", a.xlsx)
+    print("saved:", xlsx_path)
     print("saved: data/grouping_all.json")
 
     # 管理ツール取込CSV（スナップショット指定時のみ）
