@@ -21,6 +21,7 @@ import os
 import re
 import bisect
 import json
+import shutil
 import sqlite3
 import datetime as dt
 
@@ -158,20 +159,60 @@ def load_ledger(ledger_path):
     return led[LEDGER_COLUMNS]
 
 
+def _log_exam_changes(led, rows, ledger_path, source):
+    """今回アップロードで status が変わった/新規になった (round_id,email) を変更ログに追記。
+    修正（誤アップロードの訂正）も履歴として残す。→ <data>/exam_change_log.csv"""
+    if not ledger_path:
+        return
+    before = {}
+    if led is not None:
+        for _, r in led.iterrows():
+            before[(str(r["round_id"]), str(r["email"]))] = str(r["status_norm"])
+    now = dt.datetime.now().isoformat(timespec="seconds")
+    changes = []
+    for _, r in rows.iterrows():
+        key = (str(r["round_id"]), str(r["email"]))
+        old = before.get(key)
+        new = str(r["status_norm"])
+        if old != new:
+            changes.append({"logged_at": now, "round_id": r["round_id"], "email": r["email"],
+                            "old_status": (old or "(新規)"), "new_status": new,
+                            "status_raw": r["status_raw"], "source": source})
+    if changes:
+        path = os.path.join(os.path.dirname(ledger_path) or ".", "exam_change_log.csv")
+        pd.DataFrame(changes).to_csv(path, mode="a", header=not os.path.exists(path),
+                                     index=False, encoding="utf-8-sig")
+
+
+def _archive_exam_source(exam_csv, ledger_path):
+    """アップロードした試験結果CSVの原本を保管する。→ <data>/exam_uploads/<日時>_<元名>"""
+    if not ledger_path:
+        return
+    up = os.path.join(os.path.dirname(ledger_path) or ".", "exam_uploads")
+    os.makedirs(up, exist_ok=True)
+    ts = dt.datetime.now().strftime("%Y%m%d%H%M%S")
+    try:
+        shutil.copy2(exam_csv, os.path.join(up, "%s_%s" % (ts, os.path.basename(str(exam_csv)))))
+    except Exception:
+        pass
+
+
 def update_ledger(exam_csv, ledger_path, exam_date=None):
     """新しい試験結果CSVを受験台帳へ追記（同一 round_id×email は最新で置換）して保存し、
-    更新後の台帳DataFrameを返す。"""
+    更新後の台帳DataFrameを返す。アップロードは記録する（変更ログ＋原本の保管）。"""
     new = load_exam_csv(exam_csv)
     if new is None:
         raise ValueError("試験結果CSVが読めません: %s" % exam_csv)
     rid = exam_round_id(exam_csv, exam_date)
     rows = _exam_df_to_ledger_rows(new, rid, source=os.path.basename(str(exam_csv)))
     led = load_ledger(ledger_path)
+    _log_exam_changes(led, rows, ledger_path, os.path.basename(str(exam_csv)))  # 修正も記録
     merged = pd.concat([led, rows], ignore_index=True) if led is not None else rows
     merged = merged.drop_duplicates(subset=["round_id", "email"], keep="last")
     merged = merged.sort_values(["email", "round_id"]).reset_index(drop=True)
     if ledger_path:
         merged.to_csv(ledger_path, index=False, encoding="utf-8-sig")
+        _archive_exam_source(exam_csv, ledger_path)  # 原本を保管
     return merged
 
 
@@ -666,3 +707,57 @@ def event_group_correlation(grouping_df, event_metrics):
             "平均出席率%": round(sum(rates) / len(rates) * 100, 1) if rates else 0,
         })
     return pd.DataFrame(rows)
+
+
+# ==========================================================================
+# グループ分け履歴（毎回の結果を蓄積し、時点間の変化を追える）
+# ==========================================================================
+HISTORY_COLUMNS = ["run_date", "メールアドレス", "氏名", "管理者",
+                   "資格状況", "エンゲージメント", "グループ"]
+
+
+def append_grouping_history(df, data_dir, run_label=None):
+    """グループ分け結果を履歴CSVへ追記する。→ <data>/grouping_history.csv
+    run_label（例 '2026-08'）省略時は本日日付。同一 run_date の既存分は置換（同日再実行対応）。"""
+    run_date = run_label or dt.date.today().isoformat()
+    h = df.reindex(columns=[c for c in HISTORY_COLUMNS if c != "run_date"]).copy()
+    h.insert(0, "run_date", run_date)
+    path = os.path.join(str(data_dir), "grouping_history.csv")
+    if os.path.exists(path):
+        try:
+            old = pd.read_csv(path, encoding="utf-8-sig", dtype=str)
+            old = old[old["run_date"] != run_date]
+            allh = pd.concat([old, h.astype(str)], ignore_index=True)
+        except Exception:
+            allh = h
+    else:
+        allh = h
+    allh.to_csv(path, index=False, encoding="utf-8-sig")
+    return run_date, path
+
+
+def diff_grouping_history(data_dir, from_run=None, to_run=None):
+    """履歴CSVから2時点のグループを比較し、変更者DataFrameを返す。
+    from_run/to_run 省略時は最新2時点。戻り値列: メール,氏名,旧グループ,新グループ,方向。"""
+    path = os.path.join(str(data_dir), "grouping_history.csv")
+    if not os.path.exists(path):
+        return None, None, None
+    hist = pd.read_csv(path, encoding="utf-8-sig", dtype=str)
+    runs = sorted(hist["run_date"].unique())
+    if len(runs) < 2 and not (from_run and to_run):
+        return runs, None, None
+    to_run = to_run or runs[-1]
+    from_run = from_run or runs[-2]
+    order = {"コアユーザー": 0, "ライトユーザー": 1, "ユーザー": 2, "未分類": 3}
+    a = {r["メールアドレス"]: r for _, r in hist[hist["run_date"] == from_run].iterrows()}
+    b = {r["メールアドレス"]: r for _, r in hist[hist["run_date"] == to_run].iterrows()}
+    rows = []
+    for e in set(a) & set(b):
+        g1, g2 = a[e]["グループ"], b[e]["グループ"]
+        if g1 != g2:
+            rows.append({"メールアドレス": e, "氏名": b[e].get("氏名", ""),
+                         "旧グループ": g1, "新グループ": g2,
+                         "方向": "上位化" if order.get(g2, 9) < order.get(g1, 9) else "下位化"})
+    out = pd.DataFrame(rows).sort_values(["方向", "メールアドレス"]) if rows else pd.DataFrame(
+        columns=["メールアドレス", "氏名", "旧グループ", "新グループ", "方向"])
+    return (from_run, to_run), out, path

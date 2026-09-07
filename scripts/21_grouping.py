@@ -37,6 +37,8 @@ def main():
                     help="管理ツール取込CSVの出力先")
     ap.add_argument("--no-writeback", action="store_true",
                     help="members.json / user_all.json への group 書き戻しを行わない")
+    ap.add_argument("--run-label", default=None,
+                    help="履歴の時点ラベル（例 2026-08）。省略時は本日日付。同一ラベルは置換")
     a = ap.parse_args()
 
     users = json.load(open(DATA / "user_all.json", encoding="utf-8"))
@@ -62,6 +64,10 @@ def main():
 
     recs = df.to_dict(orient="records")
     json.dump(recs, open(DATA / "grouping_all.json", "w", encoding="utf-8"), ensure_ascii=False)
+
+    # グループ分け履歴を追記（時点間の変化を追える）
+    run_date, hist_path = gl.append_grouping_history(df, DATA, run_label=a.run_label)
+    print(f"履歴追記: {os.path.basename(hist_path)} (run_date={run_date})")
 
     # --- group を members.json / user_all.json へ書き戻し（15/16/17 が新グループを使用）---
     # group は分析計算（象限・リテラシー）に不使用のため、精度に影響しない表示用メタデータ。
