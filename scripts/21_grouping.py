@@ -14,6 +14,7 @@ data/exam_ledger.csv（受験台帳）から、コア/ライト/ユーザーを�
 """
 import argparse
 import json
+import os
 import sys
 from collections import Counter
 from pathlib import Path
@@ -36,6 +37,8 @@ def main():
                     help="管理ツール取込CSVの出力先")
     ap.add_argument("--no-writeback", action="store_true",
                     help="members.json / user_all.json への group 書き戻しを行わない")
+    ap.add_argument("--run-label", default=None,
+                    help="履歴の時点ラベル（例 2026-08）。省略時は本日日付。同一ラベルは置換")
     a = ap.parse_args()
 
     users = json.load(open(DATA / "user_all.json", encoding="utf-8"))
@@ -62,6 +65,10 @@ def main():
     recs = df.to_dict(orient="records")
     json.dump(recs, open(DATA / "grouping_all.json", "w", encoding="utf-8"), ensure_ascii=False)
 
+    # グループ分け履歴を追記（時点間の変化を追える）
+    run_date, hist_path = gl.append_grouping_history(df, DATA, run_label=a.run_label)
+    print(f"履歴追記: {os.path.basename(hist_path)} (run_date={run_date})")
+
     # --- group を members.json / user_all.json へ書き戻し（15/16/17 が新グループを使用）---
     # group は分析計算（象限・リテラシー）に不使用のため、精度に影響しない表示用メタデータ。
     if not a.no_writeback:
@@ -83,10 +90,24 @@ def main():
         json.dump(users, open(DATA / "user_all.json", "w", encoding="utf-8"), ensure_ascii=False)
         print(f"書き戻し: members.json {n_m}件 / user_all.json {n_u}件 の group を更新")
     Path(a.xlsx).parent.mkdir(parents=True, exist_ok=True)
-    with pd.ExcelWriter(a.xlsx, engine="openpyxl") as wr:
-        df.to_excel(wr, sheet_name="グループ分け結果", index=False)
-        if ev_corr is not None:
-            ev_corr.to_excel(wr, sheet_name="イベント出欠×グループ", index=False)
+    xlsx_path = a.xlsx
+
+    def _write_xlsx(path):
+        with pd.ExcelWriter(path, engine="openpyxl") as wr:
+            df.to_excel(wr, sheet_name="グループ分け結果", index=False)
+            if ev_corr is not None:
+                ev_corr.to_excel(wr, sheet_name="イベント出欠×グループ", index=False)
+
+    try:
+        _write_xlsx(xlsx_path)
+    except PermissionError:
+        # 出力先が Excel で開かれている等でロックされている場合、日時付きの別名に退避出力
+        import datetime as _dt
+        base, ext = os.path.splitext(a.xlsx)
+        xlsx_path = f"{base}_{_dt.datetime.now():%Y%m%d%H%M%S}{ext}"
+        _write_xlsx(xlsx_path)
+        print(f"警告: {a.xlsx} がロックされていたため {os.path.basename(xlsx_path)} に出力しました。"
+              f"（Excelを閉じて再実行すると正式名で保存されます）")
 
     active = int((df["アカウント状態"] == "アクティブ").sum())
     n_base = int(((df["管理者"] != "管理者") & (df["アカウント状態"] == "アクティブ")).sum())
@@ -101,7 +122,7 @@ def main():
     print("コア:", len(core), " = 管理者", core_admin, "+ ランキング", core_ranked)
     nonadmin_core_pass = int((core[core["管理者"] != "管理者"]["資格状況"] == gl.EXAM_PASS).sum())
     print("  ランキングコアの合格:", nonadmin_core_pass, "/", core_ranked, "（＝全員合格であるべき）")
-    print("saved:", a.xlsx)
+    print("saved:", xlsx_path)
     print("saved: data/grouping_all.json")
 
     # 管理ツール取込CSV（スナップショット指定時のみ）

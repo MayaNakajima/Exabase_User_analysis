@@ -68,6 +68,7 @@ Exabase_User_analysis/
 │   ├── 20_exam_ledger.py         … AI資格試験CSV → 受験台帳（追記型・複数回受験対応）
 │   ├── 21_grouping.py            … グループ分け（分析指標＋台帳）＋group書き戻し＋管理ツール取込CSV
 │   ├── 22_event_attendance.py    … 社内イベント出欠（attendance.db）をemail突合し出欠指標
+│   ├── grouping_diff.py          … グループ分け履歴から2時点の変更者を一覧化（アプリ非改変のユーティリティ）
 │   ├── 【一括更新オーケストレーター】
 │   ├── update_monthly.py         … 月次フル更新（取込→分類→分析→グループ分け→成果物）
 │   ├── update_exam.py            … 試験結果を随時反映（台帳→グループ分け→ダッシュボード）
@@ -78,7 +79,10 @@ Exabase_User_analysis/
 │   └── 【単月パイプライン（旧・参考）】 01_〜07_ , dashboard_template.html
 ├── ダッシュボードを開く.cmd / open_dashboard.ps1   … 最新ダッシュボードをブラウザで開く（Python不要）
 ├── グループ分け結果を開く.cmd / open_grouping.ps1  … 最新グループ分け結果Excelを開く
-├── data/   （gitignore: raw_exports/ archive/ 中間JSON・exam_ledger.csv・attendance.db。README.md のみ追跡）
+├── data/   （gitignore。raw_exports/ archive/ 中間JSON・exam_ledger.csv・attendance.db のほか下記の記録も含む）
+│   ├── grouping_history.csv      … グループ分け履歴（21実行のたびに run_date 別で追記）
+│   ├── exam_change_log.csv       … 試験結果の変更ログ（修正・訂正も記録）
+│   └── exam_uploads/             … アップロードした試験結果CSVの原本保管
 └── output/ 成果物
     ├── エクサベースAI_利用分析_全期間.xlsx
     ├── エクサベースAI_利用分析_ダッシュボード_全期間.html
