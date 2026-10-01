@@ -8,6 +8,12 @@
 - 分析期間: **2024年10月〜2026年7月（22ヶ月）** ／ 利用ユーザー 293名 ／ 会話 29,548件 ／ メッセージ 約23.7万件
 - 成果物: Excel集計ブック（全期間・月次）＋ インタラクティブHTMLダッシュボード（全期間・月次）
 
+## データ置き場
+
+- 入力データ（月次エクスポート `gai-export-*.xlsx`・メンバー一覧 `gai-members-export-*.xlsx`・社員一覧 `社員一覧*.csv`）：
+  `C:\Users\612316\Box\【個人】612316_中島　麻耶\10_data`（`scripts/config.py` の `RAW_EXPORTS`。2026-10 に `data/raw_exports/` から移動）
+- 中間ファイル・アーカイブ・受験台帳 `exam_ledger.csv` は従来どおり `data/`（`DATA`）
+
 > ⚠️ **プライバシー / 共有方針**：`data/`（生データ・中間ファイル・アーカイブ）と
 > `output/`（成果物）はいずれも社員メールアドレス・チャット本文/抜粋を含むため
 > **Git 管理対象外**（`.gitignore`、`data/README.md` のみ追跡）。
@@ -17,9 +23,9 @@
 ## Box 運用（データ・成果物の共有）
 
 - 実行用 Box フォルダ: `生成AI/DX推進課/…/Exabase_User_analysis`（folder id 405589923678）。
-- **データ**（`data/raw_exports/` の月次xlsx・メンバー一覧）と**成果物**（`output/` の Excel・
+- **データ**（月次xlsx・メンバー一覧）と**成果物**（`output/` の Excel・
   ダッシュボード）は Box に格納して共有する。リポジトリからは除外。
-- 実行時は Box からデータを `data/raw_exports/` に取得 → パイプライン実行 → 成果物を Box に戻す。
+- 実行時は Box からデータを `10_data`（`config.RAW_EXPORTS`）に取得 → パイプライン実行 → 成果物を Box に戻す。
 
 ## Git 運用（ブランチ）
 
@@ -39,10 +45,10 @@
 
 全メッセージデータは二段構えで保持する。
 
-1. **正本アーカイブ** `data/raw_exports/` … 月次エクスポート xlsx を原本のまま保管（完全・authoritative）。将来の月次もここに追加。
+1. **正本アーカイブ** `10_data`（`config.RAW_EXPORTS`）… 月次エクスポート xlsx を原本のまま保管（完全・authoritative）。将来の月次もここに追加。
 2. **正規化マスタ** `data/archive/messages_YYYY-MM.jsonl.gz` … 全メッセージを重複排除・月別・gzip圧縮した検索/再分析用の単一の真実源。`scripts/build_archive.py` が原本から生成・追記。
 
-いずれも `data/` 配下のため Git 管理対象外。詳細は `data/README.md`。
+いずれも Git 管理対象外（正本はリポジトリ外の `10_data`、正規化マスタは `data/` 配下）。詳細は `data/README.md`。
 
 ## フォルダ構成
 
@@ -79,7 +85,7 @@ Exabase_User_analysis/
 │   └── 【単月パイプライン（旧・参考）】 01_〜07_ , dashboard_template.html
 ├── ダッシュボードを開く.cmd / open_dashboard.ps1   … 最新ダッシュボードをブラウザで開く（Python不要）
 ├── グループ分け結果を開く.cmd / open_grouping.ps1  … 最新グループ分け結果Excelを開く
-├── data/   （gitignore。raw_exports/ archive/ 中間JSON・exam_ledger.csv・attendance.db のほか下記の記録も含む）
+├── data/   （gitignore。archive/ 中間JSON・exam_ledger.csv・attendance.db のほか下記の記録も含む。入力xlsx/CSVは 10_data）
 │   ├── grouping_history.csv      … グループ分け履歴（21実行のたびに run_date 別で追記）
 │   ├── exam_change_log.csv       … 試験結果の変更ログ（修正・訂正も記録）
 │   └── exam_uploads/             … アップロードした試験結果CSVの原本保管
@@ -95,7 +101,7 @@ Exabase_User_analysis/
 
 ```bash
 pip install -r requirements.txt
-# data/raw_exports/ に月次エクスポート gai-export-*.xlsx（全パート）とメンバー一覧を配置
+# 10_data（config.RAW_EXPORTS）に月次エクスポート gai-export-*.xlsx（全パート）とメンバー一覧を配置
 cd scripts
 python 10_ingest.py
 python 11_members.py
@@ -104,7 +110,7 @@ python 12_classify_prep.py
 python 13_merge_classification.py
 python 14_analyze.py
 python 15_aggregate.py
-# 氏名突合（社員一覧CSVを data/raw_exports/社員一覧*.csv に配置）:
+# 氏名突合（社員一覧CSVを 10_data/社員一覧*.csv に配置）:
 python 18_employee_master.py
 python 16_build_xlsx.py
 python 17_build_dashboard.py
@@ -130,7 +136,7 @@ python 19_snapshot.py --zip
 ```bash
 cd scripts
 # 月初：前月の利用情報(gai-export-*.xlsx 全パート)と最新メンバーエクスポート(gai-members-export-*.xlsx)を
-#        data/raw_exports/ に配置してから：
+#        10_data（config.RAW_EXPORTS）に配置してから：
 python update_monthly.py            # 取込→(分類ゲート)→分析→グループ分け→成果物＋取込CSV
 #   新規プロンプトがある場合：c*.json を分類し r*.json を保存 → python update_monthly.py --resume
 #   （または python update_monthly.py --api で Claude API 自動分類）
