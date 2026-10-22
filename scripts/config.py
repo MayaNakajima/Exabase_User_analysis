@@ -28,7 +28,7 @@ EVENT_DB = str(_EVENT_DB_LOCAL) if _EVENT_DB_LOCAL.exists() else (
     r"C:\Users\612316\Box\事業推進Div□\DX推進課\生成AI\Event-Attendance-Management\data\attendance.db")
 
 # ---- 全期間（月次）パイプライン用 ----
-RAW_EXPORTS = Path(r"C:\Users\612316\Box\【個人】612316_中島　麻耶\10_data")    # 月次xlsx・社員一覧の正本（2026-10 に data/raw_exports から移動）
+RAW_EXPORTS = Path(r"C:\Users\612316\Box\事業推進Div□\DX推進課\生成AI\00_data")    # 月次xlsx・社員一覧の正本（2026-10 に data/raw_exports から移動）
 ARCHIVE = DATA / "archive"            # 月別gzip正規化マスタ（gitignore）
 MEMBERS_GLOB = "gai-members-export-*.xlsx"  # メンバー一覧（raw_exports配下）
 SHAIN_GLOB = "社員一覧*.csv"  # 人事の社員一覧CSV（氏名突合用, Shift-JIS）。18_employee_master.py が使用
